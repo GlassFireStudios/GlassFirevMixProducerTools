@@ -1,0 +1,20 @@
+{
+  "name": "glassfire-vmix-producer-tools",
+  "version": "2.0.0",
+  "description": "GlassFire vMix Producer Tools — hub that polls vMix Web APIs over the public internet and serves per-stream playlist countdowns to remote producers, with a Companion-style admin dashboard and a named Cloudflare tunnel.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "mock": "node scripts/mock-vmix.js",
+    "provision-tunnel": "node scripts/provision-tunnel.mjs"
+  },
+  "dependencies": {
+    "cloudflared": "^0.7.1",
+    "express": "^4.19.2",
+    "fast-xml-parser": "^4.4.1",
+    "ws": "^8.18.0"
+  }
+}

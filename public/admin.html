@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>GlassFire Producer Tools — Admin</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- Login gate -->
+  <div class="login-back" id="login">
+    <form class="login-box" id="loginForm">
+      <h1>GlassFire Admin</h1>
+      <label class="field"><span>Admin password</span>
+        <input type="password" id="loginPw" autocomplete="current-password" autofocus />
+      </label>
+      <div class="err" id="loginErr"></div>
+      <div style="margin-top:1rem"><button class="btn" type="submit" style="width:100%">Sign in</button></div>
+    </form>
+  </div>
+
+  <div class="admin-wrap hidden" id="app">
+    <div class="admin-head">
+      <h1>vMix Connections</h1>
+      <div class="spacer"></div>
+      <span class="conn-pill" id="hubPill"><span class="dot"></span> hub</span>
+      <button class="btn" id="addBtn">+ Add connection</button>
+      <button class="btn secondary" id="logoutBtn">Sign out</button>
+    </div>
+
+    <div class="section">
+      <h2>Connections</h2>
+      <table class="conn-table">
+        <thead>
+          <tr><th></th><th>Status</th><th>Label</th><th>Target</th><th>Input</th><th>Remaining</th><th>Now</th><th>Enabled</th><th>Producer link</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="connRows"></tbody>
+      </table>
+      <div class="empty hidden" id="connEmpty">No connections yet. Click “Add connection”.</div>
+    </div>
+
+    <div class="section">
+      <h2>Cloudflare Tunnel</h2>
+      <div id="tunnelPanel">
+        <p class="muted">Loading…</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Settings</h2>
+      <div class="row">
+        <label class="field"><span>Producer access token (optional — requires <code>?k=TOKEN</code> on producer links)</span>
+          <input type="text" id="producerToken" placeholder="leave blank to disable" />
+        </label>
+        <label class="field"><span>Tunnel mode</span>
+          <select id="tunnelMode">
+            <option value="named">Named (production · liveproducers.glassfire.co)</option>
+            <option value="quick">Quick (testing · random trycloudflare.com URL)</option>
+          </select>
+        </label>
+      </div>
+      <label class="field"><span>Named tunnel token (paste from Cloudflare Zero Trust; stored only on this hub)</span>
+        <input type="password" id="tunnelToken" placeholder="leave blank to keep existing" />
+      </label>
+      <button class="btn" id="saveSettings">Save settings</button>
+      <span class="muted" id="settingsSaved" style="margin-left:.6rem"></span>
+    </div>
+  </div>
+
+  <!-- Add/Edit modal -->
+  <div class="modal-back hidden" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle">Add connection</h3>
+      <input type="hidden" id="fId" />
+      <label class="field"><span>Label</span><input type="text" id="fLabel" placeholder="Main Stage" /></label>
+      <div class="row">
+        <label class="field"><span>Public IP / host</span><input type="text" id="fHost" placeholder="203.0.113.10" /></label>
+        <label class="field"><span>Port</span><input type="number" id="fPort" value="8088" /></label>
+        <label class="field"><span>Color</span><input type="color" id="fColor" value="#3aa0ff" /></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>vMix username (optional)</span><input type="text" id="fUser" autocomplete="off" /></label>
+        <label class="field"><span>vMix password (optional)</span><input type="password" id="fPass" autocomplete="new-password" placeholder="(unchanged)" /></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Input (active / number / title)</span><input type="text" id="fInput" value="active" /></label>
+        <label class="field"><span>Warn at (seconds)</span><input type="number" id="fWarn" value="30" /></label>
+        <label class="field"><span>Danger at (seconds)</span><input type="number" id="fDanger" value="10" /></label>
+      </div>
+      <button class="btn secondary" id="testBtn">Test connection</button>
+      <div class="test-out hidden" id="testOut"></div>
+      <div class="foot">
+        <button class="btn secondary" id="cancelBtn">Cancel</button>
+        <button class="btn" id="saveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

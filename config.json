@@ -1,0 +1,7 @@
+{
+  "_comment": "Legacy seed list. On first run, if data/connections.json is empty, these are migrated into the store. After that, manage connections in /admin. Points at the two mock vMixes from `npm run mock`.",
+  "streams": [
+    { "label": "Stream A", "color": "#3aa0ff", "host": "127.0.0.1", "port": 18810, "input": "active", "warnSeconds": 30, "dangerSeconds": 10 },
+    { "label": "Stream B", "color": "#ff5da2", "host": "127.0.0.1", "port": 18811, "input": "active", "warnSeconds": 30, "dangerSeconds": 10 }
+  ]
+}

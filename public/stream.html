@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>GlassFire Producer — Stream</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <nav class="switcher" id="switcher"></nav>
+  <main class="stage">
+    <div class="label"><span class="swatch" id="swatch"></span><span id="label">Loading…</span></div>
+    <div class="countdown zone-idle" id="countdown">
+      <div>
+        <div class="time" id="time">--:--</div>
+        <div class="state" id="state">connecting</div>
+      </div>
+    </div>
+    <div class="nowplaying" id="now"></div>
+  </main>
+
+  <script src="/util.js"></script>
+  <script src="/cards.js"></script>
+  <script>
+    const id = decodeURIComponent(location.pathname.replace(/^\/s\//, ''));
+    const store = GF.Store();
+    const els = {
+      switcher: document.getElementById('switcher'),
+      swatch: document.getElementById('swatch'),
+      label: document.getElementById('label'),
+      countdown: document.getElementById('countdown'),
+      time: document.getElementById('time'),
+      state: document.getElementById('state'),
+      now: document.getElementById('now'),
+    };
+
+    function meta() { return store.streams.find((s) => s.id === id); }
+
+    store.onChange(() => {
+      GF.renderSwitcher(els.switcher, store.streams, store.states, id);
+      const m = meta();
+      if (m) { els.label.textContent = m.label; els.swatch.style.background = m.color; }
+    });
+
+    GF.connectWS((msg) => store.handle(msg));
+
+    // Number-key nav between streams.
+    window.addEventListener('keydown', (e) => {
+      if (e.target.matches('input,select,textarea')) return;
+      if (e.key === 'g') { location.href = GF.withToken('/grid.html'); return; }
+      if (e.key === 'Escape') { location.href = GF.withToken('/'); return; }
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 9 && store.streams[n - 1]) {
+        location.href = GF.withToken('/s/' + encodeURIComponent(store.streams[n - 1].id));
+      }
+    });
+
+    function frame() {
+      const st = store.states[id];
+      const zone = GF.zoneFor(st);
+      els.countdown.className = 'countdown zone-' + zone;
+      if (!st || !st.reachable) {
+        els.time.textContent = '--:--';
+        els.state.textContent = st && st.error ? 'offline · ' + st.error : 'offline';
+        els.now.textContent = '';
+      } else {
+        const ms = GF.currentRemaining(st);
+        els.time.textContent = ms == null ? '--:--' : GF.fmtTime(ms);
+        els.state.textContent = st.vmixState || '';
+        els.now.innerHTML = st.item ? 'Now playing: <b>' + GF.esc(st.item) + '</b>' : '';
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
