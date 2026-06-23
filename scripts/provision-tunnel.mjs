@@ -16,6 +16,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { atomicWrite } from '../src/atomic.js';
 
 const API = 'https://api.cloudflare.com/client/v4';
 const ZONE_NAME = 'glassfire.co';
@@ -90,9 +91,7 @@ async function writeToken(tunnelToken) {
   let data = {};
   try { data = JSON.parse(await fs.readFile(file, 'utf8')); } catch { /* fresh */ }
   data.tunnel = { ...(data.tunnel || {}), mode: 'named', token: tunnelToken, hostname: HOSTNAME };
-  const tmp = `${file}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
-  await fs.rename(tmp, file);
+  await atomicWrite(file, JSON.stringify(data, null, 2));
 }
 
 async function main() {

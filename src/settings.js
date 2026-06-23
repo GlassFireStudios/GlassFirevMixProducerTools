@@ -11,6 +11,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { atomicWrite } from './atomic.js';
 
 const DATA_DIR = path.resolve('data');
 const FILE = path.join(DATA_DIR, 'settings.json');
@@ -94,9 +95,7 @@ export class Settings {
 
   async _persist() {
     await fs.mkdir(DATA_DIR, { recursive: true });
-    const tmp = `${FILE}.${process.pid}.${Date.now()}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(this.data, null, 2), 'utf8');
-    await fs.rename(tmp, FILE);
+    await atomicWrite(FILE, JSON.stringify(this.data, null, 2));
   }
 
   // ---- accessors ----------------------------------------------------------

@@ -43,8 +43,15 @@ You have two options. **Option A is the least clicking.**
    - **Zone › Zone › Read** (on `glassfire.co`)
 2. Run, on the hub machine:
    ```bash
+   # Linux / macOS
    export CLOUDFLARE_API_TOKEN=xxxxxxxx   # the token from step 1
    # export CF_ACCOUNT_ID=...             # optional; otherwise auto-resolved
+   npm run provision-tunnel
+   ```
+   ```powershell
+   # Windows PowerShell
+   $env:CLOUDFLARE_API_TOKEN = "xxxxxxxx"
+   $env:CF_ACCOUNT_ID = "43f8d8ac03d57a4320ba9a31a0645a15"  # optional
    npm run provision-tunnel
    ```
    This creates (or reuses) a remotely-managed tunnel named
@@ -107,16 +114,21 @@ dashboard's copy buttons include the token automatically once it's set.
 
 ## 4. AWS networking — how the hub reaches the vMixes
 
-The hub can run on any always-on Linux box in your AWS account (Node 18+). It's
-lightweight — polling a handful of vMix APIs every 750 ms and serving a small
-web app + WebSockets — so it's fine to **co-locate it on an existing instance**
-(e.g. a c5.large already doing NDI / shared storage). Just make sure:
+The hub can run on any always-on box in your AWS account — **Windows or Linux**,
+Node 18+. It's plain Node with no native build step, and the bundled
+`cloudflared` ships a Windows binary, so it runs the same on a Windows vMix/NDI
+host. It's lightweight — polling a handful of vMix APIs every 750 ms and serving
+a small web app + WebSockets — so it's fine to **co-locate it on an existing
+instance** (e.g. a Windows c5.large already doing NDI / shared storage). Just
+make sure:
 
 - Node 18+ is installed, and nothing else on the box is already using port
-  **8090** (if it is, run the hub with `PORT=<other>` and use that port wherever
-  this guide says 8090 — including the tunnel ingress).
+  **8090** (Windows: `Get-NetTCPConnection -LocalPort 8090`; Linux:
+  `ss -ltnp | grep 8090`). If it's taken, run the hub with `PORT=<other>` and use
+  that port wherever this guide says 8090 — including the tunnel ingress.
 - The box has outbound internet to Cloudflare on **TCP 7844** (for the tunnel)
-  and to the vMixes on their API port.
+  and to the vMixes on their API port. On Windows, allow `node.exe` and
+  `cloudflared` outbound through Windows Defender Firewall if prompted.
 - `data/` lives on persistent storage (a mounted volume is ideal).
 
 Then lock down how the hub reaches each vMix. Pick the case that matches you:
@@ -176,12 +188,29 @@ remove them once your real vMixes are in.
 
 ## 6. Run it persistently
 
-- **[TODO]** Run the hub under a process manager so it survives reboots, e.g.
-  systemd or `pm2 start npm --name vmix-hub -- start`.
-- **[TODO]** Keep `data/` on persistent storage — it holds your connections and
-  settings (and the tunnel token).
-- **[TODO]** Start the named tunnel (auto-starts when a token is present, or via
-  the `/admin` Tunnel panel).
+Keep `data/` on persistent storage (it holds your connections, settings, and the
+tunnel token). The named tunnel auto-starts when a token is present, so a single
+managed `node src/server.js` process runs everything.
+
+**Windows (the NDI/c5.large box) — run as a service with NSSM:**
+
+```powershell
+# Install Node 18+ first (winget install OpenJS.NodeJS.LTS), then in the repo:
+choco install nssm        # or download from https://nssm.cc
+nssm install GlassFireHub "C:\Program Files\nodejs\node.exe" "src\server.js"
+nssm set GlassFireHub AppDirectory "C:\path\to\GlassFirevMixProducerTools"
+nssm set GlassFireHub AppEnvironmentExtra PORT=8090
+nssm start GlassFireHub
+```
+
+The service starts on boot and restarts on crash. Logs: `nssm set GlassFireHub
+AppStdout/AppStderr` to a file, or view in Event Viewer. (Alternatives: `pm2` +
+`pm2-installer`, or a Task Scheduler "At startup" task running `node src\server.js`.)
+
+**Linux — systemd:** create `/etc/systemd/system/vmix-hub.service` running
+`ExecStart=/usr/bin/node src/server.js` with `WorkingDirectory=` set to the repo
+and `Restart=always`, then `sudo systemctl enable --now vmix-hub`. Or
+`pm2 start npm --name vmix-hub -- start && pm2 save && pm2 startup`.
 
 ---
 

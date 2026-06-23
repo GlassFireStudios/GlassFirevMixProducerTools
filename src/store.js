@@ -7,6 +7,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
+import { atomicWrite } from './atomic.js';
 
 const DATA_DIR = path.resolve('data');
 const FILE = path.join(DATA_DIR, 'connections.json');
@@ -124,10 +125,7 @@ export class ConnectionStore extends EventEmitter {
   // ---- atomic persistence -------------------------------------------------
   async _persist() {
     await fs.mkdir(DATA_DIR, { recursive: true });
-    const tmp = `${FILE}.${process.pid}.${Date.now()}.tmp`;
-    const body = JSON.stringify({ connections: this.connections }, null, 2);
-    await fs.writeFile(tmp, body, 'utf8');
-    await fs.rename(tmp, FILE);
+    await atomicWrite(FILE, JSON.stringify({ connections: this.connections }, null, 2));
   }
 
   async _save() {
