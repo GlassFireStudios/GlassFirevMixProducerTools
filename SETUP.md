@@ -27,6 +27,35 @@ reflects in the producer views within ~1 s with no restart.
 
 ---
 
+## 0. Install prerequisites (Windows Server, no winget)
+
+Older Windows Server images (2016/2019) have neither `winget`, Node, nor Git.
+Use **Chocolatey** to get all of them, in **PowerShell run as Administrator**:
+
+```powershell
+# 1) Install Chocolatey (the TLS line matters on Server 2016/2019)
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# 2) Install Node 18+, Git, and the NSSM service tool
+choco install -y nodejs-lts git nssm
+refreshenv
+node -v ; git --version    # both should print versions
+
+# 3) Clone (private repo — sign in at the Git Credential Manager prompt,
+#    or use a PAT: https://<PAT>@github.com/GlassFireStudios/...)
+cd C:\
+git clone https://github.com/GlassFireStudios/GlassFirevMixProducerTools.git
+cd GlassFirevMixProducerTools
+npm install
+```
+
+> On macOS/Linux just install Node 18+ and Git from your package manager; the
+> rest of this guide is the same apart from shell syntax.
+
+---
+
 ## 1. Cloudflare named tunnel → https://liveproducers.glassfire.co
 
 **Status: [TODO] — not auto-provisioned.** `CLOUDFLARE_API_TOKEN` was not set in
