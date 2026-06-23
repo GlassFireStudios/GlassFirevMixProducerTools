@@ -105,16 +105,53 @@ dashboard's copy buttons include the token automatically once it's set.
 
 ---
 
-## 4. Secure each AWS vMix  ← do this before going live
+## 4. AWS networking — how the hub reaches the vMixes
 
-- **[TODO] Enable the vMix Web Controller login** on every AWS vMix
-  (Settings → Web Controller → require a username/password). A public vMix Web
-  API can *control* vMix, so this is not optional in production.
-- **[TODO]** When you add the connection in `/admin`, enter those **username /
-  password** so the hub authenticates.
-- **[TODO] Lock each vMix's AWS security group** so TCP **8088** (or your chosen
-  port) is reachable **only from this hub's egress IP**, not `0.0.0.0/0`.
-  - Find the hub's egress IP from the hub machine: `curl -s https://api.ipify.org`.
+The hub can run on any always-on Linux box in your AWS account (Node 18+). It's
+lightweight — polling a handful of vMix APIs every 750 ms and serving a small
+web app + WebSockets — so it's fine to **co-locate it on an existing instance**
+(e.g. a c5.large already doing NDI / shared storage). Just make sure:
+
+- Node 18+ is installed, and nothing else on the box is already using port
+  **8090** (if it is, run the hub with `PORT=<other>` and use that port wherever
+  this guide says 8090 — including the tunnel ingress).
+- The box has outbound internet to Cloudflare on **TCP 7844** (for the tunnel)
+  and to the vMixes on their API port.
+- `data/` lives on persistent storage (a mounted volume is ideal).
+
+Then lock down how the hub reaches each vMix. Pick the case that matches you:
+
+### Case A — hub and vMixes in the same VPC/region (recommended)
+
+Being on AWS does **not** automatically put the hub "inside" a vMix's security
+group — each instance has its own inbound rules. But in the same VPC you can do
+better than an IP allow-list:
+
+- Use each vMix's **private IP** as the *host* when you add the connection in
+  `/admin`.
+- On each vMix's security group, add inbound **TCP 8088** with
+  **Source = the hub instance's security group** (`sg-…`). This
+  "security-group referencing" means only the hub can reach the vMix, it keeps
+  working even if the hub's IP changes, and the vMix API is never exposed to the
+  public internet.
+
+### Case B — different VPC/account, or using public IPs
+
+- Attach an **Elastic IP** to the hub so its outbound IP is stable (a plain
+  instance gets a new public IP on every stop/start, which would silently break
+  the rule).
+- On each vMix's security group, add inbound **TCP 8088 from
+  `<hub-Elastic-IP>/32`** — never `0.0.0.0/0`.
+- Use each vMix's **public IP** as the host in `/admin`.
+- Find the hub's current egress IP from the hub: `curl -s https://api.ipify.org`.
+
+### Either case — secure the vMix itself
+
+- **[TODO] Enable the vMix Web Controller login** on every vMix
+  (Settings → Web Controller → require a username/password). A reachable vMix Web
+  API can *control* vMix, so this is not optional.
+- **[TODO]** Enter those **username / password** when you add the connection in
+  `/admin` so the hub authenticates.
 
 ---
 
@@ -124,8 +161,8 @@ dashboard's copy buttons include the token automatically once it's set.
 each vMix:
 
 - **Label** (e.g. “Main Stage”), **Color**.
-- **Public IP / host** (the AWS instance's public IP) and **Port** (default
-  `8088`).
+- **Host** = the vMix's **private IP** (Case A) or **public IP** (Case B), and
+  **Port** (default `8088`).
 - **vMix username / password** (from step 4).
 - **Input**: `active`, an input **number**, or an input **title**.
 - **Warn at** / **Danger at** seconds (countdown thresholds).
@@ -173,7 +210,8 @@ Producer URLs once the tunnel is up:
 - [ ] Save the generated admin password and delete `data/admin-password.txt`.
 - [ ] (Optional) Set a producer access token.
 - [ ] Enable vMix Web Controller login on each AWS vMix.
-- [ ] Lock each vMix security group to the hub's egress IP; allow hub egress to
-      Cloudflare on 7844.
+- [ ] Lock each vMix security group — same-VPC: source = hub's security group
+      (use private IPs); otherwise: hub's Elastic IP /32 (use public IPs). Allow
+      hub egress to Cloudflare on 7844.
 - [ ] Add the real vMix connections in `/admin` and remove the seeded mocks.
 - [ ] Run the hub under a process manager and start the tunnel.
