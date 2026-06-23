@@ -51,6 +51,19 @@ cd GlassFirevMixProducerTools
 npm install
 ```
 
+> **If `choco install git` fails with exit code 4**, that's a pending-reboot
+> condition from the Node/NSSM installs (not a real error). Reboot, then
+> `choco install -y git` again. Can't reboot? Install Git's official installer
+> directly instead:
+> ```powershell
+> [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+> $rel = Invoke-RestMethod -UseBasicParsing -Headers @{ "User-Agent"="ps" } https://api.github.com/repos/git-for-windows/git/releases/latest
+> $asset = $rel.assets | Where-Object { $_.name -match '64-bit\.exe$' } | Select-Object -First 1
+> Invoke-WebRequest -UseBasicParsing $asset.browser_download_url -OutFile "$env:TEMP\git.exe"
+> Start-Process "$env:TEMP\git.exe" -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP-" -Wait
+> ```
+> Then open a new PowerShell window so PATH picks up `git`.
+
 > On macOS/Linux just install Node 18+ and Git from your package manager; the
 > rest of this guide is the same apart from shell syntax.
 
