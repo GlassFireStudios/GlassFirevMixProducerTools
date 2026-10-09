@@ -35,8 +35,8 @@ export function humanizeProduct(id) {
   if (!id) return null;
   let t = String(id).replace(/^[a-z]{2}-/, '').replace(/^(premium|standard)-/, '').replace(/^business-/, '')
     .replace(/-terminal-access-fee$/, '').replace(/-data-block$/, ' data block');
-  t = t.replace(/-/g, ' ').replace(/(d+)s?(gb|tb)/gi, (_, n, u) => `${n}${u.toUpperCase()}`);
-  return t.replace(/([a-z])/g, (m) => m.toUpperCase()).replace(/ Data Block$/, ' data block');
+  t = t.replace(/-/g, ' ').replace(/(\d+)\s?(gb|tb)\b/gi, (_, n, u) => `${n}${u.toUpperCase()}`);
+  return t.replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/ Data Block$/, ' data block');
 }
 
 const round = (n, d = 1) => (Number.isFinite(n) ? Math.round(n * 10 ** d) / 10 ** d : null);
