@@ -44,6 +44,22 @@
       <span class="muted small" id="saveMsg"></span>
     </section>
 
+    <section class="panel" id="fhPanel">
+      <div class="section-head"><h2>FusionHub live</h2><span class="muted small">SpeedFusion bonding, every 2s</span><div class="spacer"></div>
+        <span class="muted small" id="fhAt"></span></div>
+      <div class="result warn hidden" id="fhErr"></div>
+      <div class="hidden" id="fhSetup">
+        <p class="muted small">One-time setup. Enter the FusionHub <b>admin</b> login. The hub uses it once to create a <b>read-only</b> API client for itself, then forgets the password.</p>
+        <div class="row">
+          <label class="field"><span>FusionHub address</span><input id="fhHost" value="172.31.73.237" autocomplete="off" /></label>
+          <label class="field"><span>Admin username</span><input id="fhUser" autocomplete="off" /></label>
+          <label class="field"><span>Admin password</span><input id="fhPass" type="password" autocomplete="new-password" /></label>
+        </div>
+        <button class="btn" id="fhConnect">Create read-only client</button> <span class="muted small" id="fhMsg"></span>
+      </div>
+      <div id="fhPeers"></div>
+    </section>
+
     <section class="panel" id="slPanel">
       <div class="section-head"><h2>Starlink</h2><span class="muted small" id="slAcct"></span><div class="spacer"></div>
         <span class="muted small" id="slUpdated"></span><button class="btn small secondary" id="slRefresh">Refresh</button></div>
@@ -72,7 +88,9 @@
     </section>
   </main>
 
+  <script src="/chart.js"></script>
   <script src="/network.js"></script>
+  <script src="/network-fusionhub.js"></script>
   <script src="/network-starlink.js"></script>
 </body>
 </html>

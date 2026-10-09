@@ -156,3 +156,25 @@ test('redact strips router passwords and secrets from IC2 data', () => {
   assert.equal(r[0].sfconnect_data_plan.quota_left_kb, 5);
   assert.ok(!JSON.stringify(r).includes('"y"'));
 });
+
+import { extractTunnels, rateFrom } from '../src/fusionhub.js';
+
+test('extractTunnels pulls per-WAN numbers from a PepVPN status shape', () => {
+  const peers = extractTunnels({
+    peer: { order: [1], 1: { name: 'GFBR2MAX Alpha', state: 'connected' } },
+    tunnel: { 1: { wan: { 1: { name: 'Cellular 1', state: 'ACTIVE', rtt: 48, rx: { bytes: 1000, loss: 2 }, tx: { bytes: 500 } } } } },
+  });
+  assert.equal(peers.length, 1);
+  assert.equal(peers[0].name, 'GFBR2MAX Alpha');
+  assert.equal(peers[0].wans[0].name, 'Cellular 1');
+  assert.equal(peers[0].wans[0].rttMs, 48);
+  assert.equal(peers[0].wans[0].rxBytes, 1000);
+  assert.equal(peers[0].wans[0].rxLoss, 2);
+  assert.deepEqual(extractTunnels({}), []);
+});
+
+test('rateFrom computes Mbps from cumulative byte counters', () => {
+  assert.equal(rateFrom(0, 250000, 2000), 1); // 250 kB in 2s = 1 Mbps
+  assert.equal(rateFrom(500, 100, 2000), null); // counter reset
+  assert.equal(rateFrom(null, 100, 2000), null);
+});

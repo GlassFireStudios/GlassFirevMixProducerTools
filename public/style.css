@@ -340,3 +340,6 @@ pre.raw { max-height: 420px; overflow: auto; background: var(--bg); border: 1px 
 .plan.low .plan-bar > div { background: var(--warn); }
 .plan-nums { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: .4rem; font-size: .85rem; }
 .dishes { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .85rem; line-height: 1.6; }
+.fh-peer { border-top: 1px solid var(--line); padding-top: .8rem; margin-top: .8rem; }
+.fh-peer-head { gap: .6rem; }
+.fh-wan .charts { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }

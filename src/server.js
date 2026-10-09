@@ -25,6 +25,7 @@ import { ServiceStatus } from './servicestatus.js';
 import { VmixCalls } from './vmixcalls.js';
 import { Peplink } from './peplink.js';
 import { Starlink } from './starlink.js';
+import { FusionHub } from './fusionhub.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -61,6 +62,8 @@ const peplink = await new Peplink().load();
 peplink.start();
 const starlink = await new Starlink().load();
 starlink.start();
+const fusionhub = await new FusionHub().load();
+fusionhub.start();
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
@@ -440,6 +443,27 @@ admin.put('/peplink/config', async (req, res) => {
 });
 admin.post('/peplink/refresh', async (req, res) => { await peplink.tick(); res.json(peplink.view()); });
 
+// ---- FusionHub live (local Peplink API over the VPC) ------------------------
+const FusionHubConnect = z.object({
+  host: z.string().trim().max(100).optional(),
+  username: z.string().min(1).max(100),
+  password: z.string().min(1).max(200),
+});
+admin.get('/fusionhub', (req, res) => res.json(fusionhub.view(Number(req.query.since) || 0)));
+admin.get('/fusionhub/raw', (req, res) => res.json(fusionhub.raw));
+// One-time: creates a read-only API client on the FusionHub. The admin
+// password is used for that single login and never stored.
+admin.post('/fusionhub/connect', async (req, res) => {
+  const body = FusionHubConnect.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  try {
+    await fusionhub.connect(body.data);
+    res.json(fusionhub.view());
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // ---- Starlink (account API, read-only service account) --------------------
 const StarlinkCfg = z.object({
   clientId: z.string().trim().max(200).optional(),
@@ -588,6 +612,7 @@ async function shutdown(signal) {
   calls.stop();
   peplink.stop();
   starlink.stop();
+  fusionhub.stop();
   hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));
