@@ -17,6 +17,9 @@ import { Settings, PRODUCER_PORT_DEFAULT } from './settings.js';
 import { Poller } from './poller.js';
 import { TunnelManager } from './tunnel.js';
 import { fetchVmixApi, parseVmixXml, VmixError } from './vmix.js';
+import { IngestStore, decideAuth, ingestPath, INGEST_APP } from './ingest.js';
+import { MediaMtxMonitor } from './mediamtx.js';
+import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
 } from './auth.js';
@@ -24,6 +27,13 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PORT = Number(process.env.PORT) || PRODUCER_PORT_DEFAULT;
+// MediaMTX's HTTP auth hook. Bound to loopback only, never behind the tunnel.
+const AUTH_HOOK_PORT = Number(process.env.AUTH_HOOK_PORT) || 8091;
+const INGEST = {
+  publicHost: process.env.INGEST_PUBLIC_HOST || '',
+  privateHost: process.env.INGEST_PRIVATE_HOST || '',
+  readCidrs: (process.env.INGEST_READ_CIDRS || '172.31.0.0/16').split(',').map((s) => s.trim()).filter(Boolean),
+};
 
 // ---------------------------------------------------------------------------
 // Bootstrap
@@ -32,6 +42,9 @@ const store = new ConnectionStore();
 const settings = new Settings();
 await settings.load();
 await store.load();
+const ingests = await new IngestStore().load();
+const mediamtx = new MediaMtxMonitor();
+mediamtx.start();
 
 const app = express();
 app.use(express.json({ limit: '256kb' }));
@@ -212,6 +225,66 @@ admin.post('/tunnel/stop', async (req, res) => {
   res.json(tunnel.state());
 });
 
+// ---- Ingests (MediaMTX stream keys + live stats) -------------------------
+const IngestCreate = z.object({ name: z.string().trim().min(1).max(60) });
+const IngestPatch = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  enabled: z.boolean().optional(),
+});
+
+function ingestView(rec) {
+  const pathName = ingestPath(rec.key);
+  const host = INGEST.publicHost || '<public-ip>';
+  const priv = INGEST.privateHost || '<private-ip>';
+  return {
+    ...rec,
+    path: pathName,
+    live: mediamtx.get(pathName),
+    setup: {
+      publisher: { rtmpServer: `rtmp://${host}/${INGEST_APP}`, streamKey: rec.key },
+      vmixSrt: { host: priv, port: 8890, streamId: `read:${pathName}`, latencyMs: 200 },
+      vmixRtmpUrl: `rtmp://${priv}/${pathName}`,
+    },
+  };
+}
+
+admin.get('/ingests', (req, res) => {
+  const known = new Set(ingests.list().map((i) => ingestPath(i.key)));
+  // Live paths not tied to a managed key (e.g. legacy-credential pushes).
+  const other = [...mediamtx.paths.keys()].filter((n) => !known.has(n)).map((n) => mediamtx.get(n));
+  res.json({
+    mediamtx: { online: mediamtx.online, error: mediamtx.error },
+    hosts: { publicHost: INGEST.publicHost, privateHost: INGEST.privateHost },
+    ingests: ingests.list().map(ingestView),
+    otherPaths: other,
+  });
+});
+
+admin.post('/ingests', async (req, res) => {
+  const body = IngestCreate.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid', issues: body.error.issues });
+  res.status(201).json({ ingest: ingestView(await ingests.create(body.data)) });
+});
+
+admin.put('/ingests/:id', async (req, res) => {
+  const body = IngestPatch.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid', issues: body.error.issues });
+  const rec = await ingests.update(req.params.id, body.data);
+  if (!rec) return res.status(404).json({ error: 'not-found' });
+  res.json({ ingest: ingestView(rec) });
+});
+
+admin.post('/ingests/:id/regenerate', async (req, res) => {
+  const rec = await ingests.regenerate(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'not-found' });
+  res.json({ ingest: ingestView(rec) });
+});
+
+admin.delete('/ingests/:id', async (req, res) => {
+  if (!(await ingests.remove(req.params.id))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+
 app.use('/api/admin', admin);
 
 // ---------------------------------------------------------------------------
@@ -227,6 +300,36 @@ wss.on('connection', (ws, req) => {
     return;
   }
   ws.send(JSON.stringify({ type: 'hello', streams: poller.publicStreams(), states: poller.snapshot() }));
+});
+
+// ---------------------------------------------------------------------------
+// MediaMTX auth hook (loopback-only listener; MediaMTX POSTs every action here)
+// ---------------------------------------------------------------------------
+const AuthReq = z.object({
+  action: z.string(),
+  path: z.string().optional().default(''),
+  ip: z.string().optional().default(''),
+  user: z.string().optional().default(''),
+  password: z.string().optional().default(''),
+  protocol: z.string().optional(),
+}).passthrough();
+
+const hook = express();
+hook.disable('x-powered-by');
+hook.use(express.json({ limit: '32kb' }));
+hook.post('/mediamtx/auth', (req, res) => {
+  const parsed = AuthReq.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).end();
+  const r = parsed.data;
+  const d = decideAuth(r, { ingests: ingests.list(), legacy: ingests.legacy, readCidrs: INGEST.readCidrs });
+  if (!d.allow && r.action === 'publish' && (r.user || r.path)) {
+    console.warn(`[ingest] denied publish ${r.protocol || ''} path=${r.path} ip=${r.ip} (${d.reason})`);
+  }
+  res.status(d.allow ? 200 : 401).end();
+});
+const hookServer = http.createServer(hook);
+hookServer.listen(AUTH_HOOK_PORT, '127.0.0.1', () => {
+  console.log(`[ingest] MediaMTX auth hook on http://127.0.0.1:${AUTH_HOOK_PORT}/mediamtx/auth`);
 });
 
 // ---------------------------------------------------------------------------
@@ -267,6 +370,8 @@ server.listen(PORT, async () => {
 async function shutdown(signal) {
   console.log(`\n[hub] ${signal} — shutting down`);
   poller.stop();
+  mediamtx.stop();
+  hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 4000).unref();

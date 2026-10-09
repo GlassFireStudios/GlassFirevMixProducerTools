@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>GlassFire Producer Tools — Admin</title>
+  <title>GlassFire Live Tools — Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -22,15 +23,35 @@
 
   <div class="admin-wrap hidden" id="app">
     <div class="admin-head">
-      <h1>vMix Connections</h1>
+      <h1>GlassFire Live Tools</h1>
       <div class="spacer"></div>
       <span class="conn-pill" id="hubPill"><span class="dot"></span> hub</span>
-      <button class="btn" id="addBtn">+ Add connection</button>
       <button class="btn secondary" id="logoutBtn">Sign out</button>
     </div>
 
     <div class="section">
-      <h2>Connections</h2>
+      <div class="section-head">
+        <h2>Ingest</h2>
+        <span class="pill off" id="mtxPill">MediaMTX …</span>
+        <div class="spacer"></div>
+        <button class="btn" id="ingestAddBtn">+ New ingest</button>
+      </div>
+      <table class="conn-table">
+        <thead>
+          <tr><th>Status</th><th>Name</th><th>Video</th><th>Audio</th><th>Bitrate</th><th>Up</th><th>Readers</th><th>From</th><th>Enabled</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="ingestRows"></tbody>
+      </table>
+      <div class="empty hidden" id="ingestEmpty">No ingests yet. Click “New ingest” to make a stream key for Riverside or any RTMP/SRT source.</div>
+      <div id="otherPaths"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2>vMix Connections</h2>
+        <div class="spacer"></div>
+        <button class="btn" id="addBtn">+ Add connection</button>
+      </div>
       <table class="conn-table">
         <thead>
           <tr><th></th><th>Status</th><th>Label</th><th>Target</th><th>Input</th><th>Remaining</th><th>Now</th><th>Enabled</th><th>Producer link</th><th>Actions</th></tr>
@@ -97,6 +118,18 @@
     </div>
   </div>
 
+  <!-- Ingest setup modal -->
+  <div class="modal-back hidden" id="ingestModal">
+    <div class="modal">
+      <h3 id="imTitle">Ingest</h3>
+      <div id="imBody"></div>
+      <div class="foot">
+        <button class="btn secondary" id="imClose">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/admin.js"></script>
+  <script src="/ingest-admin.js"></script>
 </body>
 </html>
