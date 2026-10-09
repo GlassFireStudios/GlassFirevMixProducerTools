@@ -39,6 +39,35 @@ export function describeTracks(tracks2) {
   return out;
 }
 
+// One reader of a path, with whatever link stats its protocol exposes.
+export function describeReader(c, type) {
+  if (!c) return { protocol: type || '?', remoteAddr: null, analyzer: false };
+  const ip = String(c.remoteAddr || '').replace(/:\d+$/, '');
+  const out = {
+    id: c.id,
+    protocol: c.protocol,
+    remoteAddr: c.remoteAddr ?? null,
+    created: c.created ?? null,
+    // The hub's analyzer is the only thing that reads over loopback.
+    analyzer: ip === '127.0.0.1' || ip === '[::1]',
+    bytesSent: c.bytesSent ?? c.outboundBytes ?? null,
+    framesDiscarded: c.outboundFramesDiscarded ?? null,
+  };
+  if (c.protocol === 'SRT') {
+    Object.assign(out, {
+      rttMs: c.msRTT ?? null,
+      sendMbps: c.mbpsSendRate ?? null,
+      linkMbps: c.mbpsLinkCapacity ?? null,
+      lossPackets: c.packetsSendLoss ?? null,
+      lossRate: c.packetsSendLossRate ?? null,
+      retransPackets: c.packetsRetrans ?? null,
+      dropPackets: c.packetsSendDrop ?? null,
+      sendBufMs: c.msSendBuf ?? null,
+    });
+  }
+  return out;
+}
+
 export class MediaMtxMonitor {
   constructor(apiBase = process.env.MEDIAMTX_API || 'http://127.0.0.1:9997') {
     this.apiBase = apiBase;
@@ -64,14 +93,16 @@ export class MediaMtxMonitor {
     if (this._busy) return;
     this._busy = true;
     try {
-      const [paths, rtmp, srt] = await Promise.all([
+      const [paths, rtmp, srt, rtsp] = await Promise.all([
         getJson(this.apiBase, '/v3/paths/list?itemsPerPage=1000'),
         getJson(this.apiBase, '/v3/rtmpconns/list?itemsPerPage=1000').catch(() => ({ items: [] })),
         getJson(this.apiBase, '/v3/srtconns/list?itemsPerPage=1000').catch(() => ({ items: [] })),
+        getJson(this.apiBase, '/v3/rtspsessions/list?itemsPerPage=1000').catch(() => ({ items: [] })),
       ]);
       const conns = new Map();
       for (const c of rtmp.items ?? []) conns.set(c.id, { protocol: 'RTMP', ...c });
       for (const c of srt.items ?? []) conns.set(c.id, { protocol: 'SRT', ...c });
+      for (const c of rtsp.items ?? []) conns.set(c.id, { protocol: 'RTSP', ...c });
 
       const now = Date.now();
       const next = new Map();
@@ -79,20 +110,29 @@ export class MediaMtxMonitor {
         const prev = this.paths.get(p.name);
         const bytes = Number(p.bytesReceived ?? p.inboundBytes ?? 0);
         const src = p.source ? conns.get(p.source.id) : null;
+        const readerList = (p.readers ?? []).map((r) => describeReader(conns.get(r.id), r.type));
         next.set(p.name, {
           name: p.name,
           online: !!(p.ready ?? p.online),
           since: p.readyTime ?? p.onlineTime ?? null,
           tracks: describeTracks(p.tracks2),
-          readers: (p.readers ?? []).length,
+          tracks2: p.tracks2 ?? [],
+          framesInError: p.inboundFramesInError ?? 0,
+          // The hub's own analyzer reads over loopback RTSP; don't count it as a viewer.
+          readers: readerList.filter((r) => !r.analyzer).length,
+          readerList,
           bytesReceived: bytes,
           kbps: computeKbps(prev?.bytesReceived, prev?._ts, bytes, now, prev?.kbps ?? null),
           sourceType: p.source?.type ?? null,
           publisher: src ? {
             protocol: src.protocol,
             remoteAddr: src.remoteAddr ?? null,
+            userAgent: src.userAgent ?? null,
+            created: src.created ?? null,
             rttMs: src.msRTT ?? null,
             lossPackets: src.packetsReceivedLoss ?? null,
+            dropPackets: src.packetsReceivedDrop ?? null,
+            retransPackets: src.packetsReceivedRetrans ?? null,
           } : null,
           _ts: now,
         });

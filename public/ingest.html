@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Ingest · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="btn secondary" href="/admin#ingest">Admin</a>
+  </header>
+
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1 id="dName">Ingest</h1>
+      <span class="pill off" id="dState">…</span>
+      <span class="muted" id="dUp"></span>
+      <div class="spacer"></div>
+      <div class="range" id="range" role="group" aria-label="Time range">
+        <button data-m="5">5m</button><button data-m="15" class="on">15m</button><button data-m="60">1h</button><button data-m="120">2h</button>
+      </div>
+    </div>
+
+    <div class="signin hidden" id="signin">
+      <p>Sign in to see stream metrics.</p><a class="btn" id="signinBtn" href="/admin">Sign in</a>
+    </div>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Audio</h2><span class="pill off hidden" id="silence">SILENT</span></div>
+      <div class="meters" id="meters"></div>
+      <div class="loud" id="loud"></div>
+    </section>
+
+    <section class="charts">
+      <div id="cBitrate"></div>
+      <div id="cFps"></div>
+      <div id="cGap"></div>
+      <div id="cLate"></div>
+      <div id="cGop"></div>
+      <div id="cAudio"></div>
+      <div id="cLufs"></div>
+      <div id="cRtt"></div>
+      <div id="cLoss"></div>
+    </section>
+
+    <section class="panel two">
+      <div>
+        <h2>Stream</h2>
+        <table class="kvtable" id="info"></table>
+      </div>
+      <div>
+        <h2>Viewers</h2>
+        <div id="viewers"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Events</h2><div class="spacer"></div>
+        <button class="btn small secondary" id="csvBtn">Download CSV</button></div>
+      <ol class="events" id="events"></ol>
+    </section>
+  </main>
+
+  <script src="/chart.js"></script>
+  <script src="/ingest-detail.js"></script>
+</body>
+</html>

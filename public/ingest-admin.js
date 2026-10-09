@@ -70,6 +70,7 @@
       <td class="mono">${esc(live?.publisher ? `${live.publisher.protocol} ${live.publisher.remoteAddr || ''}` : '—')}</td>
       <td><span class="pill ${i.enabled ? 'on' : 'off'}" data-act="toggle" style="cursor:pointer">${i.enabled ? 'enabled' : 'disabled'}</span></td>
       <td><div class="actions">
+        <a class="btn small secondary" href="/ingest/${encodeURIComponent(i.id)}">Metrics</a>
         <button class="btn small" data-act="setup">Setup</button>
         <button class="btn small secondary" data-act="regen">New key</button>
         <button class="btn small danger" data-act="del">Delete</button>

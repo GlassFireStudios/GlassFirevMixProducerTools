@@ -19,6 +19,7 @@ import { TunnelManager } from './tunnel.js';
 import { fetchVmixApi, parseVmixXml, VmixError } from './vmix.js';
 import { IngestStore, decideAuth, ingestPath, INGEST_APP } from './ingest.js';
 import { MediaMtxMonitor } from './mediamtx.js';
+import { StreamAnalyzer } from './analyzer.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -45,6 +46,8 @@ await store.load();
 const ingests = await new IngestStore().load();
 const mediamtx = new MediaMtxMonitor();
 mediamtx.start();
+const analyzer = new StreamAnalyzer(mediamtx);
+if (process.env.ANALYZER !== 'off') analyzer.start();
 
 const app = express();
 app.use(express.json({ limit: '256kb' }));
@@ -139,6 +142,7 @@ app.use(express.static(PUBLIC_DIR, {
 // Admin dashboard (gated)
 // ---------------------------------------------------------------------------
 app.get('/admin', (req, res) => sendPage(res, 'admin.html'));
+app.get('/ingest/:id', (req, res) => sendPage(res, 'ingest.html'));
 
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body ?? {};
@@ -298,6 +302,25 @@ admin.get('/ingests', (req, res) => {
   });
 });
 
+// Full metrics for one ingest: live snapshot, stream info, per-second series
+// (optionally only points newer than ?since=<epoch ms>) and the event log.
+admin.get('/ingests/:id/metrics', (req, res) => {
+  const rec = ingests.get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'not-found' });
+  const pathName = ingestPath(rec.key);
+  const a = analyzer.get(pathName);
+  const since = Number(req.query.since) || 0;
+  res.json({
+    ingest: { id: rec.id, name: rec.name, enabled: rec.enabled, path: pathName },
+    live: mediamtx.get(pathName),
+    info: a?.info ?? null,
+    totals: a?.totals ?? null,
+    series: a ? a.series.filter((p) => p.t > since) : [],
+    events: (analyzer.events.get(pathName) || []).filter((e) => e.t > since),
+    now: Date.now(),
+  });
+});
+
 admin.post('/ingests', async (req, res) => {
   const body = IngestCreate.safeParse(req.body ?? {});
   if (!body.success) return res.status(400).json({ error: 'invalid', issues: body.error.issues });
@@ -406,6 +429,7 @@ async function shutdown(signal) {
   console.log(`\n[hub] ${signal} — shutting down`);
   poller.stop();
   mediamtx.stop();
+  analyzer.stop();
   hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));

@@ -52,7 +52,7 @@
     $('liveGrid').innerHTML = sorted.map((i) => {
       const l = i.live;
       const on = !!l?.online;
-      return `<a class="live-card ${on ? 'is-live' : ''}" href="/admin#ingest">
+      return `<a class="live-card ${on ? 'is-live' : ''}" href="/ingest/${encodeURIComponent(i.id)}">
         <div class="lc-top"><span class="status-dot ${on ? 'ok' : 'offline'}"></span>
           <span class="lc-name">${esc(i.name)}</span>
           <span class="lc-state">${on ? 'LIVE' : (i.enabled ? 'waiting' : 'disabled')}</span></div>
