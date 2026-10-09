@@ -39,7 +39,7 @@ export const SERVICES = [
   { id: 'twitch', name: 'Twitch', checks: [statuspage('https://status.twitch.com')] },
   { id: 'cloudflare', name: 'Cloudflare', checks: [
     // Only what Live Tools depends on; Cloudflare always has some far-away PoP degraded.
-    statuspage('https://www.cloudflarestatus.com', /tunnel|access|zero trust|dns|ashburn|(iad)/i),
+    statuspage('https://www.cloudflarestatus.com', /tunnel|access|zero trust|\bdns\b|ashburn|\(iad\)/i),
   ] },
   { id: 'aws', name: 'AWS us-east-1', checks: [{ kind: 'aws', url: 'https://health.aws.amazon.com/public/currentevents' }] },
   { id: 'peplink', name: 'Peplink InControl', checks: [{ kind: 'rss', url: 'https://status.peplink.com/feed.rss', page: 'https://status.peplink.com' }] },

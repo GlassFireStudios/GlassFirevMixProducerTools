@@ -132,3 +132,14 @@ test('humanizeProduct', () => {
   assert.equal(humanizeProduct('us-premium-business-global-priority-terminal-access-fee'), 'Global Priority');
   assert.equal(humanizeProduct(null), null);
 });
+
+import { SERVICES } from '../src/servicestatus.js';
+
+test('Cloudflare focus regex matches what we depend on, not lookalikes', () => {
+  const focus = SERVICES.find((s) => s.id === 'cloudflare').checks[0].focus;
+  assert.ok(focus.test('Cloudflare Tunnel'));
+  assert.ok(focus.test('Authoritative DNS'));
+  assert.ok(focus.test('Ashburn, VA, United States - (IAD)'));
+  assert.ok(!focus.test('Riyadh, Saudi Arabia - (RUH)'));
+  assert.ok(!focus.test('Madrid, Spain - (MAD)'));
+});
