@@ -88,3 +88,18 @@ test('summarizeDevice tolerates IC2 field variants', () => {
   assert.equal(d.wans[0].rsrp, -95);
   assert.equal(summarizeDevice({ name: 'x', status: 'offline' }).online, false);
 });
+
+import { summarizeData } from '../src/peplink.js';
+
+test('summarizeData: eSIM plan, per-SIM remaining, month usage', () => {
+  const r = summarizeData({
+    sfconnect_data_plan: { name: 'NA & EU eSIM', expiry_date: '2028-10-03T23:59:59', usage_quota_kb: 79046354, usage_consumed_kb: 21574006, quota_left_kb: 57472348 },
+    interfaces: [{ id: 3, speedfusion_connect_5gLte: { remainingQuotaKb: 38859785 } }, { id: 4, speedfusion_connect_5gLte: { remainingQuotaKb: 0 } }, { id: 1 }],
+  }, { usages: [{ from_date: '2026-10-01T00:00:00', to_date: '2999-10-31T23:59:59', up: 48783.1, down: 47044.9 }] });
+  assert.equal(r.plan.leftKb, 57472348);
+  assert.equal(r.wanQuota[3].leftKb, 38859785);
+  assert.equal(r.wanQuota[4].leftKb, 0);
+  assert.equal(r.wanQuota[1], undefined);
+  assert.equal(r.monthUsage.downMb, 47044.9);
+  assert.equal(summarizeData({}, null).plan, null);
+});

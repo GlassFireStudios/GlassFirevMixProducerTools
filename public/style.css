@@ -332,3 +332,10 @@ pre.raw { max-height: 420px; overflow: auto; background: var(--bg); border: 1px 
 .sig-ok { color: var(--ok); }
 .sig-warn { color: var(--warn); }
 .sig-bad { color: var(--danger); }
+.plan { border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem .9rem; margin: .4rem 0 .9rem; }
+.plan.low { border-color: color-mix(in srgb, var(--warn) 70%, var(--line)); }
+.plan-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: .5rem; }
+.plan-bar { height: 12px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.plan-bar > div { height: 100%; background: linear-gradient(90deg, #0099D2, #3C5BA9); }
+.plan.low .plan-bar > div { background: var(--warn); }
+.plan-nums { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: .4rem; font-size: .85rem; }

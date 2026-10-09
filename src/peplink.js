@@ -46,6 +46,11 @@ export function summarizeDevice(d) {
     lastOnline: d.last_online ?? d.lastOnline ?? null,
     location: d.latitude != null ? { lat: d.latitude, lon: d.longitude } : null,
     clients: d.client_count ?? null,
+    uptimeSec: d.uptime ?? null,
+    address: d.address ?? null,
+    expired: !!(d.expired || d.sub_expired),
+    subExpiry: d.sub_expiry_date ?? null,
+    tunnels: d.pepvpn_peers ?? null,
     wans: ifaces.filter((i) => i.type !== 'lan').map((i) => {
       const sig = i.cellular_signals || i.cellular || {};
       return {
@@ -60,10 +65,63 @@ export function summarizeDevice(d) {
         sinr: sig.sinr ?? null,
         rsrp: sig.rsrp ?? null,
         rsrq: sig.rsrq ?? null,
+        bars: i.signal_bar ?? null,
+        led: i.status_led ?? null,
         updatedAt: i.updated_at ?? null,
       };
     }),
   };
+}
+
+// Remaining data from a device detail record:
+//  - sfconnect_data_plan: SpeedFusion Connect eSIM plan (quota/used/left in KB, per ICCID)
+//  - interfaces[].speedfusion_connect_5gLte.remainingQuotaKb: what's left per SIM/WAN
+//  - interfaces[].bandwidth_allowance* style fields, if an allowance is set on the WAN
+// plus this month's usage from /bandwidth?type=monthly (IC2 reports MB).
+export function summarizeData(detail, month) {
+  const out = { plan: null, wanQuota: {}, monthUsage: null };
+  const p = detail?.sfconnect_data_plan;
+  if (p && (p.usage_quota_kb != null || p.quota_left_kb != null)) {
+    out.plan = {
+      name: p.name ?? 'SpeedFusion Connect',
+      expiry: p.expiry_date ?? null,
+      quotaKb: p.usage_quota_kb ?? null,
+      usedKb: p.usage_consumed_kb ?? null,
+      leftKb: p.quota_left_kb ?? null,
+    };
+  }
+  for (const i of detail?.interfaces || []) {
+    if (i?.id == null) continue;
+    const sfc = i.speedfusion_connect_5gLte;
+    const allowKey = Object.keys(i).find((k) => /allowance/i.test(k));
+    const allow = allowKey ? i[allowKey] : null;
+    if (sfc?.remainingQuotaKb != null) out.wanQuota[i.id] = { leftKb: sfc.remainingQuotaKb, quotaSource: 'eSIM' };
+    else if (allow && typeof allow === 'object') {
+      out.wanQuota[i.id] = {
+        allowance: allow,
+        leftKb: allow.remaining_kb ?? allow.remainingKb ?? null,
+        quotaSource: 'allowance',
+      };
+    }
+  }
+  const usages = month?.usages || month?.data?.usages || [];
+  const cur = usages[usages.length - 1];
+  if (cur && new Date(cur.to_date) >= new Date()) out.monthUsage = { upMb: cur.up, downMb: cur.down, from: cur.from_date };
+  return out;
+}
+
+// SpeedFusion peers from IC2's pepvpn/status into readable rows.
+export function summarizeTunnels(pep) {
+  return (pep?.peer_detail_list || []).map((t) => ({
+    profile: t.profilename ?? null,
+    tunnel: t.subtunnel_name ?? null,
+    status: t.status ?? null,
+    local: t.name ?? null,
+    remote: t.remote_name ?? t.remote_site_id ?? null,
+    remoteOnline: String(t.remote_device_status ?? '').toUpperCase() === 'ONLINE',
+    type: t.type ?? null,
+    secure: !!t.secure,
+  }));
 }
 
 export class Peplink {
@@ -76,6 +134,7 @@ export class Peplink {
     this.error = null;
     this.updatedAt = null;
     this._timer = null;
+    this._detail = new Map(); // deviceId -> { at, detail, month }
   }
 
   async load() {
@@ -136,7 +195,33 @@ export class Peplink {
         if (!d.online || d.groupId == null || d.id == null) continue;
         try {
           d.pepvpn = await this.get(`/rest/o/${org}/g/${d.groupId}/d/${d.id}/pepvpn/status`);
+          d.tunnelList = summarizeTunnels(d.pepvpn);
+          // Per-WAN tunnel latency/loss: only meaningful while a peer is up.
+          if (d.tunnelList.some((t) => t.remoteOnline)) {
+            try { d.tunnelStat = await this.get(`/rest/o/${org}/g/${d.groupId}/d/${d.id}/pepvpn/tunnel_stat`); } catch (e) { d.tunnelStatError = e.message; }
+          }
         } catch (e) { d.pepvpnError = e.message; }
+      }
+      // Data plans + monthly usage come from the per-device detail; refresh every 5 min
+      // (IC2 keeps the last report for offline units, so this works for them too).
+      const now = Date.now();
+      for (const d of this.devices) {
+        if (d.groupId == null || d.id == null) continue;
+        const cached = this._detail.get(d.id);
+        if (!cached || now - cached.at > 5 * 60_000) {
+          try {
+            const detail = await this.get(`/rest/o/${org}/g/${d.groupId}/d/${d.id}`);
+            let month = null;
+            try { month = await this.get(`/rest/o/${org}/g/${d.groupId}/d/${d.id}/bandwidth?type=monthly`); } catch { /* optional */ }
+            this._detail.set(d.id, { at: now, detail, month });
+          } catch (e) { d.detailError = e.message; }
+        }
+        const c = this._detail.get(d.id);
+        if (c) Object.assign(d, summarizeData(c.detail, c.month));
+        for (const w of d.wans) {
+          const q = d.wanQuota?.[w.id];
+          if (q) Object.assign(w, q);
+        }
       }
       this.error = null;
       this.updatedAt = Date.now();
