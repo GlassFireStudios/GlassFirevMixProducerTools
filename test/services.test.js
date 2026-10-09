@@ -70,3 +70,21 @@ test('vmixCallUrl + invite codes', () => {
   assert.match(c, /^[a-z2-9]{10}$/);
   assert.notEqual(c, newInviteCode());
 });
+
+import { summarizeDevice } from '../src/peplink.js';
+
+test('summarizeDevice tolerates IC2 field variants', () => {
+  const d = summarizeDevice({
+    id: 7, group_id: 3, name: 'GFBR2MAX Bravo', sn: 'ABCD', product_name: 'MAX BR2', fw_ver: '8.5.2', onlineStatus: 'ONLINE',
+    interfaces: [
+      { id: 1, name: 'Cellular 1', type: 'gobi', status: 'Connected', ip: '10.0.0.2', carrier_name: 'Verizon', gobi_band_class_name: 'LTE B13', cellular_signals: { rsrp: -95, rsrq: -11, sinr: 9, rssi: -70 } },
+      { id: 9, name: 'LAN', type: 'lan' },
+    ],
+  });
+  assert.equal(d.online, true);
+  assert.equal(d.model, 'MAX BR2');
+  assert.equal(d.wans.length, 1);
+  assert.equal(d.wans[0].carrier, 'Verizon');
+  assert.equal(d.wans[0].rsrp, -95);
+  assert.equal(summarizeDevice({ name: 'x', status: 'offline' }).online, false);
+});

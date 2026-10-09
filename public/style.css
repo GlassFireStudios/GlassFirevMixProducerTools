@@ -326,3 +326,9 @@ body.join { min-height: 100vh; }
 .help { margin-top: 2.4rem; color: var(--muted); }
 .help summary { cursor: pointer; }
 .help li { margin: .5rem 0; line-height: 1.5; }
+
+/* Network page */
+pre.raw { max-height: 420px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: .7rem; font: .74rem/1.4 var(--mono); color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+.sig-ok { color: var(--ok); }
+.sig-warn { color: var(--warn); }
+.sig-bad { color: var(--danger); }

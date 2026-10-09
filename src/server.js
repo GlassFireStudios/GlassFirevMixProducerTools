@@ -23,6 +23,7 @@ import { MediaMtxMonitor } from './mediamtx.js';
 import { StreamAnalyzer } from './analyzer.js';
 import { ServiceStatus } from './servicestatus.js';
 import { VmixCalls } from './vmixcalls.js';
+import { Peplink } from './peplink.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -55,6 +56,8 @@ const services = new ServiceStatus();
 if (process.env.STATUS_CHECKS !== 'off') services.start();
 const calls = await new VmixCalls().load();
 calls.start();
+const peplink = await new Peplink().load();
+peplink.start();
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
@@ -128,6 +131,7 @@ function gateProducer(req, res, next) {
 // ---------------------------------------------------------------------------
 app.get('/', (req, res) => sendPage(res, 'home.html'));
 app.get('/guests', (req, res) => sendPage(res, 'guests.html'));
+app.get('/network', (req, res) => sendPage(res, 'network.html'));
 app.get('/join/:code', (req, res) => sendPage(res, 'join.html'));
 
 // ---- Outage checker (not sensitive; the dashboard host sits behind Access) ----
@@ -417,6 +421,22 @@ admin.delete('/ingests/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Peplink InControl2 ------------------------------------------------------
+const PeplinkCfg = z.object({
+  clientId: z.string().trim().max(200).optional(),
+  clientSecret: z.string().trim().max(200).optional(),
+  orgId: z.string().trim().max(50).optional(),
+});
+admin.get('/peplink', (req, res) => res.json(peplink.view()));
+admin.get('/peplink/raw', (req, res) => res.json(peplink.raw));
+admin.put('/peplink/config', async (req, res) => {
+  const body = PeplinkCfg.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  await peplink.setConfig(body.data);
+  res.json(peplink.publicConfig());
+});
+admin.post('/peplink/refresh', async (req, res) => { await peplink.tick(); res.json(peplink.view()); });
+
 // ---- vMix machines + vMix Call guests -------------------------------------
 const MachineBody = z.object({
   label: z.string().trim().min(1).max(40),
@@ -548,6 +568,7 @@ async function shutdown(signal) {
   analyzer.stop();
   services.stop();
   calls.stop();
+  peplink.stop();
   hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));

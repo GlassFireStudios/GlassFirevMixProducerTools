@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Network · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="btn secondary" href="/admin">Admin</a>
+  </header>
+
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Network</h1>
+      <span class="muted">Peplink InControl2</span>
+      <div class="spacer"></div>
+      <span class="muted small" id="updated"></span>
+      <button class="btn small secondary" id="refresh">Refresh</button>
+    </div>
+
+    <div class="signin hidden" id="signin"><p>Sign in to see network status.</p><a class="btn" href="/admin?next=/network">Sign in</a></div>
+    <div class="result warn hidden" id="err"></div>
+
+    <section class="panel hidden" id="setup">
+      <h2>Connect InControl2</h2>
+      <p class="muted small">In InControl2, open your profile, then Client Applications, then click <b>GlassFire Live Tools</b> to see its Client ID and Secret. The Org ID is the code in your InControl2 address bar after <code>/o/</code>.</p>
+      <div class="row">
+        <label class="field"><span>Client ID</span><input id="cid" autocomplete="off" /></label>
+        <label class="field"><span>Client Secret</span><input id="csec" type="password" autocomplete="new-password" placeholder="paste secret" /></label>
+        <label class="field"><span>Org ID</span><input id="org" autocomplete="off" /></label>
+      </div>
+      <button class="btn" id="save">Save and connect</button>
+      <span class="muted small" id="saveMsg"></span>
+    </section>
+
+    <section id="devices"></section>
+
+    <section class="panel">
+      <details>
+        <summary class="muted">Raw InControl2 data (for tuning this page)</summary>
+        <pre class="raw" id="raw"></pre>
+      </details>
+      <p class="muted small"><a href="#" id="editCfg">Change InControl2 connection</a></p>
+    </section>
+  </main>
+
+  <script src="/network.js"></script>
+</body>
+</html>

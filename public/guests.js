@@ -93,8 +93,9 @@
           <td class="mono small">${esc(s?.version || '')} ${esc(s?.edition || '')}</td>
           <td>${s?.recording ? '<span class="pill on">REC</span>' : '—'}</td><td>${s?.streaming ? '<span class="pill on">LIVE</span>' : '—'}</td>
           <td>${s?.calls?.length ?? '—'}</td>
-          <td><button class="btn small danger" data-rm="${esc(m.id)}">Remove</button></td></tr>`;
+          <td><div class="actions"><button class="btn small secondary" data-edit="${esc(m.id)}">Edit</button><button class="btn small danger" data-rm="${esc(m.id)}">Remove</button></div></td></tr>`;
   }).join('')}</tbody></table>` : '<p class="muted">No vMix machines yet. Add one with its private IP (e.g. vMix1 = 172.31.73.35).</p>';
+    $('machines').querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openMachine(machines.find((x) => x.id === b.dataset.edit))));
     $('machines').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', async () => {
       if (!confirm('Remove this vMix from Live Tools?')) return;
       await api(`/vmix/${b.dataset.rm}`, { method: 'DELETE' }); refresh();
@@ -132,11 +133,26 @@
   });
 
   // machine modal
-  $('addMachine').addEventListener('click', () => $('mModal').classList.remove('hidden'));
+  let editingId = null;
+  function openMachine(m) {
+    editingId = m ? m.id : null;
+    $('mLabel').value = m?.label || '';
+    $('mHost').value = m?.host || '';
+    $('mPort').value = m?.port || 8088;
+    $('mUser').value = m?.username || '';
+    $('mPass').value = '';
+    $('mPass').placeholder = m?.hasPassword ? '(unchanged)' : '';
+    $('mSave').textContent = m ? 'Save' : 'Add';
+    $('mModal').classList.remove('hidden');
+  }
+  $('addMachine').addEventListener('click', () => openMachine(null));
   $('mClose').addEventListener('click', () => $('mModal').classList.add('hidden'));
   $('mSave').addEventListener('click', async () => {
     try {
-      await api('/vmix', { method: 'POST', body: JSON.stringify({ label: $('mLabel').value, host: $('mHost').value, port: $('mPort').value, username: $('mUser').value, password: $('mPass').value }) });
+      const body = { label: $('mLabel').value, host: $('mHost').value, port: $('mPort').value, username: $('mUser').value };
+      if ($('mPass').value) body.password = $('mPass').value;
+      if (editingId) await api(`/vmix/${editingId}`, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/vmix', { method: 'POST', body: JSON.stringify({ ...body, password: body.password || '' }) });
       $('mModal').classList.add('hidden'); $('mPass').value = '';
       refresh();
     } catch (e) { alert(e.message); }
