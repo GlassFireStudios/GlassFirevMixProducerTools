@@ -107,6 +107,9 @@ export class Peplink {
     if (this.token && Date.now() < this.tokenExp - 60_000) return this.token;
     const form = new URLSearchParams({ client_id: this.cfg.clientId, client_secret: this.cfg.clientSecret, grant_type: 'client_credentials' });
     const r = await call(`${API}/api/oauth2/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form });
+    if (r.body?.error === 'invalid_client') {
+      throw new Error('InControl rejected the Client ID / Secret. Use the API client\'s ID and secret from Client Applications, not your InControl login.');
+    }
     if (r.status !== 200 || !r.body?.access_token) throw new Error(`InControl login failed (HTTP ${r.status})`);
     this.token = r.body.access_token;
     this.tokenExp = Date.now() + (Number(r.body.expires_in) || 3600) * 1000;

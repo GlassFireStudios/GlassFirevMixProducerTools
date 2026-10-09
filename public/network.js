@@ -68,6 +68,7 @@
   }
 
   $('save').addEventListener('click', async () => {
+    if ($('cid').value.includes('@')) { $('saveMsg').textContent = 'That looks like your login email. Use the API client\'s Client ID instead.'; return; }
     $('saveMsg').textContent = 'Connecting…';
     try {
       await api('/peplink/config', { method: 'PUT', body: JSON.stringify({ clientId: $('cid').value, clientSecret: $('csec').value, orgId: $('org').value }) });

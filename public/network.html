@@ -34,10 +34,10 @@
 
     <section class="panel hidden" id="setup">
       <h2>Connect InControl2</h2>
-      <p class="muted small">In InControl2, open your profile, then Client Applications, then click <b>GlassFire Live Tools</b> to see its Client ID and Secret. The Org ID is the code in your InControl2 address bar after <code>/o/</code>.</p>
+      <p class="muted small"><b>Not your InControl2 login.</b> In InControl2, open your profile, find <b>Client Applications</b>, and click <b>GlassFire Live Tools</b>. Copy its <b>Client ID</b> and <b>Client Secret</b> (long random strings). The Org ID is the code in your InControl2 address bar after <code>/o/</code>.</p>
       <div class="row">
-        <label class="field"><span>Client ID</span><input id="cid" autocomplete="off" /></label>
-        <label class="field"><span>Client Secret</span><input id="csec" type="password" autocomplete="new-password" placeholder="paste secret" /></label>
+        <label class="field"><span>Client ID (API client, not your email)</span><input id="cid" autocomplete="off" placeholder="e.g. cc1f…" /></label>
+        <label class="field"><span>Client Secret (not your password)</span><input id="csec" type="password" autocomplete="new-password" placeholder="paste client secret" /></label>
         <label class="field"><span>Org ID</span><input id="org" autocomplete="off" /></label>
       </div>
       <button class="btn" id="save">Save and connect</button>
