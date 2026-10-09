@@ -143,3 +143,16 @@ test('Cloudflare focus regex matches what we depend on, not lookalikes', () => {
   assert.ok(!focus.test('Riyadh, Saudi Arabia - (RUH)'));
   assert.ok(!focus.test('Madrid, Spain - (MAD)'));
 });
+
+import { redact } from '../src/peplink.js';
+
+test('redact strips router passwords and secrets from IC2 data', () => {
+  const r = redact([{ name: 'FSH', admin_conf: { admin_name: 'x', admin_password: 'y' }, wifi_cfg: { psk: 'z' },
+    interfaces: [{ ip: '1.2.3.4', pppoe_password: 'p' }], sfconnect_data_plan: { quota_left_kb: 5 } }]);
+  assert.equal(r[0].admin_conf, '[redacted]');
+  assert.equal(r[0].wifi_cfg, '[redacted]');
+  assert.equal(r[0].interfaces[0].pppoe_password, '[redacted]');
+  assert.equal(r[0].interfaces[0].ip, '1.2.3.4');
+  assert.equal(r[0].sfconnect_data_plan.quota_left_kb, 5);
+  assert.ok(!JSON.stringify(r).includes('"y"'));
+});

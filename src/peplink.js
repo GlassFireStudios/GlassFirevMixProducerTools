@@ -32,6 +32,20 @@ async function call(url, opts = {}) {
   }
 }
 
+// InControl returns some device secrets in plain text (e.g. admin_conf carries
+// the router's web-admin password). Strip anything secret-looking before the
+// hub keeps or shows a response.
+const SECRET_KEY = /pass(word|wd|phrase)?|secret|psk|token|private|admin_conf|wifi_cfg|radius|shared_?key|credential/i;
+export function redact(v) {
+  if (Array.isArray(v)) return v.map(redact);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const [k, val] of Object.entries(v)) out[k] = SECRET_KEY.test(k) ? '[redacted]' : redact(val);
+    return out;
+  }
+  return v;
+}
+
 // Pull the useful bits out of an IC2 device record, tolerating field-name drift.
 export function summarizeDevice(d) {
   const ifaces = Array.isArray(d.interfaces) ? d.interfaces : [];
@@ -180,7 +194,7 @@ export class Peplink {
     const r = await call(`${API}${p}`, { headers: { Authorization: `Bearer ${token}` } });
     if (r.status === 401) { this.token = null; throw new Error('InControl rejected the token'); }
     if (r.status !== 200) throw new Error(`InControl ${p} HTTP ${r.status}`);
-    return r.body?.data ?? r.body;
+    return redact(r.body?.data ?? r.body);
   }
 
   async tick() {
