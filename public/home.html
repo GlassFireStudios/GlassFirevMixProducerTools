@@ -27,6 +27,14 @@
 
     <section class="home-section">
       <div class="section-head">
+        <h2>Services</h2>
+        <span class="pill off" id="svcSummary">checking…</span>
+      </div>
+      <div class="svc-grid" id="svcGrid"></div>
+    </section>
+
+    <section class="home-section">
+      <div class="section-head">
         <h2>Ingest</h2>
         <span class="pill off" id="ingestSummary">…</span>
         <div class="spacer"></div>
@@ -42,6 +50,11 @@
           <span class="tile-title">Ingest &amp; stream keys</span>
           <span class="tile-desc">Make a stream key for any RTMP or SRT encoder, copy the vMix settings, watch bitrate live.</span>
           <span class="tile-stat" id="tIngest"></span>
+        </a>
+        <a class="tile" href="/guests">
+          <span class="tile-title">Guests (vMix Call)</span>
+          <span class="tile-desc">Invite a guest to a vMix Call input. They get a friendly tech check, then land in the call with their name filled in.</span>
+          <span class="tile-stat" id="tGuests"></span>
         </a>
         <a class="tile" href="/producer">
           <span class="tile-title">Producer countdowns</span>

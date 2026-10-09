@@ -71,6 +71,36 @@
     } catch {}
   }
 
+  // Outage checker strip.
+  const SVC_LABEL = { ok: 'OK', minor: 'Degraded', major: 'Outage', down: 'Down', unknown: 'Unknown' };
+  async function svc() {
+    try {
+      const { services } = await (await fetch('/api/status/services')).json();
+      const bad = services.filter((s) => s.state !== 'ok' && s.state !== 'unknown');
+      $('svcSummary').textContent = bad.length ? `${bad.length} with problems` : 'All clear';
+      $('svcSummary').className = 'pill ' + (bad.length ? 'off warn-pill' : 'on');
+      $('svcGrid').innerHTML = services.map((s) => {
+        const details = (s.checks || []).map((c) => [c.detail, ...(c.broken || []).slice(0, 4), ...(c.incidents || []).map((i) => `Incident: ${i.name} (${i.status})`)].filter(Boolean).join('\n')).join('\n');
+        const page = (s.checks || []).find((c) => c.page)?.page;
+        const tag = page ? 'a' : 'div';
+        return `<${tag} class="svc svc-${s.state}" ${page ? `href="${esc(page)}" target="_blank" rel="noopener"` : ''} title="${esc(details)}">
+          <span class="svc-dot"></span><span class="svc-name">${esc(s.name)}</span><span class="svc-state">${SVC_LABEL[s.state] || s.state}</span></${tag}>`;
+      }).join('');
+    } catch { /* ignore */ }
+  }
+  async function guests() {
+    try {
+      const r = await fetch('/api/admin/guests');
+      if (!r.ok) return;
+      const { invites } = await r.json();
+      const live = invites.filter((i) => i.callConnected && i.connectedAt).length;
+      $('tGuests').textContent = `${live} in call / ${invites.length} invited`;
+    } catch {}
+  }
+  svc(); guests();
+  setInterval(svc, 30000);
+  setInterval(guests, 5000);
+
   refresh();
   streams();
   setInterval(refresh, 2000);

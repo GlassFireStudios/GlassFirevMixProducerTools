@@ -1,0 +1,72 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { fromStatuspage, fromRss, fromAws, worst } from '../src/servicestatus.js';
+import { parseVmixState, vmixCallUrl, newInviteCode } from '../src/vmixcalls.js';
+
+test('worst()', () => {
+  assert.equal(worst(['ok', 'minor', 'ok']), 'minor');
+  assert.equal(worst(['ok', 'unknown']), 'unknown');
+  assert.equal(worst(['minor', 'down', 'major']), 'down');
+  assert.equal(worst([]), 'ok');
+});
+
+test('fromStatuspage: indicator + broken components + open incidents', () => {
+  const r = fromStatuspage({
+    status: { indicator: 'minor', description: 'Partially Degraded Service' },
+    components: [{ name: 'Meetings', status: 'degraded_performance' }, { name: 'Chat', status: 'operational' }],
+    incidents: [{ name: 'Join delays', status: 'investigating', impact: 'minor' }, { name: 'Old', status: 'resolved' }],
+  });
+  assert.equal(r.state, 'minor');
+  assert.deepEqual(r.broken, ['Meetings: degraded performance']);
+  assert.equal(r.incidents.length, 1);
+});
+
+test('fromStatuspage with focus ignores unrelated components', () => {
+  const j = { status: { indicator: 'major' }, components: [
+    { name: 'Arica, Chile - (ARI)', status: 'major_outage' },
+    { name: 'Cloudflare Tunnel', status: 'operational' },
+  ], incidents: [] };
+  assert.equal(fromStatuspage(j, /tunnel|ashburn/i).state, 'ok');
+  j.components[1].status = 'partial_outage';
+  assert.equal(fromStatuspage(j, /tunnel|ashburn/i).state, 'major');
+});
+
+test('fromRss flags recent unresolved items only', () => {
+  const now = Date.parse('2026-10-08T12:00:00Z');
+  const xml = `<rss><channel>
+    <item><title>InControl degraded</title><pubDate>Thu, 08 Oct 2026 10:00:00 GMT</pubDate></item>
+    <item><title>Old thing resolved</title><pubDate>Mon, 01 Jan 2026 10:00:00 GMT</pubDate></item>
+  </channel></rss>`;
+  assert.equal(fromRss(xml, now).state, 'minor');
+  assert.equal(fromRss(xml.replace('InControl degraded', 'InControl degraded - Resolved'), now).state, 'ok');
+});
+
+test('fromAws only counts us-east-1 / global', () => {
+  assert.equal(fromAws([{ region_name: 'eu-west-1', summary: 'x' }]).state, 'ok');
+  assert.equal(fromAws([{ region_name: 'N. Virginia', summary: 'EC2 issue' }]).state, 'minor');
+});
+
+test('parseVmixState reads call inputs and keeps passwords as strings', () => {
+  const xml = `<vmix><version>29.0.0.49</version><edition>Pro</edition><preset>C:\\x\\Show.vmix</preset><inputs>
+    <input key="a1" number="1" type="SRT" title="SRT 1">SRT 1</input>
+    <input key="b2" number="2" type="VideoCall" title="Call - Guest" callPassword="012345" callConnected="True" callVideoSource="Output1" callAudioSource="Master" muted="False" meterF1="0.5" meterF2="0">Call</input>
+  </inputs><recording duration="10">True</recording><streaming>False</streaming><external>False</external>
+  <audio><master meterF1="0.1" meterF2="0.1"/></audio></vmix>`;
+  const s = parseVmixState(xml);
+  assert.equal(s.version, '29.0.0.49');
+  assert.equal(s.preset, 'Show.vmix');
+  assert.equal(s.recording, true);
+  assert.equal(s.streaming, false);
+  assert.equal(s.calls.length, 1);
+  assert.equal(s.calls[0].password, '012345');
+  assert.equal(s.calls[0].connected, true);
+  assert.equal(s.calls[0].db[0], -6);
+  assert.equal(s.calls[0].db[1], null);
+});
+
+test('vmixCallUrl + invite codes', () => {
+  assert.equal(vmixCallUrl('012345', 'Jo Smith'), 'https://www.vmixcall.com/call.aspx?Key=012345&Name=Jo+Smith');
+  const c = newInviteCode();
+  assert.match(c, /^[a-z2-9]{10}$/);
+  assert.notEqual(c, newInviteCode());
+});

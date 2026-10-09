@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Guests · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="btn secondary" href="/admin">Admin</a>
+  </header>
+
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Guests</h1>
+      <span class="muted">vMix Call</span>
+    </div>
+
+    <div class="signin hidden" id="signin"><p>Sign in to manage guests.</p><a class="btn" href="/admin?next=/guests">Sign in</a></div>
+
+    <section class="panel">
+      <div class="section-head"><h2>Invites</h2><div class="spacer"></div></div>
+      <div id="invites"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>vMix Call inputs</h2><div class="spacer"></div></div>
+      <p class="muted small">Add a vMix Call input in vMix (Add Input, then Call), then invite a guest to it here. Each guest gets a link with a guided tech check, and lands in that call with their name filled in.</p>
+      <div id="calls"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>vMix machines</h2><div class="spacer"></div>
+        <button class="btn small" id="addMachine">+ Add vMix</button></div>
+      <div id="machines"></div>
+    </section>
+  </main>
+
+  <!-- Invite modal -->
+  <div class="modal-back hidden" id="invModal">
+    <div class="modal">
+      <h3 id="invTitle">Invite a guest</h3>
+      <input type="hidden" id="invMachine" /><input type="hidden" id="invInput" />
+      <label class="field"><span>Guest name</span><input id="invName" maxlength="60" /></label>
+      <label class="field"><span>Show (shown to the guest)</span><input id="invShow" maxlength="80" /></label>
+      <div id="invOut"></div>
+      <div class="foot"><button class="btn secondary" id="invClose">Close</button><button class="btn" id="invCreate">Create link</button></div>
+    </div>
+  </div>
+
+  <!-- Machine modal -->
+  <div class="modal-back hidden" id="mModal">
+    <div class="modal">
+      <h3>Add a vMix machine</h3>
+      <label class="field"><span>Name</span><input id="mLabel" placeholder="vMix1" /></label>
+      <div class="row">
+        <label class="field"><span>Private IP</span><input id="mHost" placeholder="172.31.x.x" /></label>
+        <label class="field"><span>Port</span><input id="mPort" value="8088" /></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Web Controller user (if set)</span><input id="mUser" autocomplete="off" /></label>
+        <label class="field"><span>Web Controller password (if set)</span><input id="mPass" type="password" autocomplete="new-password" /></label>
+      </div>
+      <div class="foot"><button class="btn secondary" id="mClose">Cancel</button><button class="btn" id="mSave">Add</button></div>
+    </div>
+  </div>
+
+  <script src="/guests.js"></script>
+</body>
+</html>

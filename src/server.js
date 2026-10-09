@@ -7,6 +7,7 @@
 
 import express from 'express';
 import http from 'http';
+import crypto from 'crypto';
 import path from 'path';
 import { promises as fsp } from 'fs';
 import { fileURLToPath } from 'url';
@@ -20,6 +21,8 @@ import { fetchVmixApi, parseVmixXml, VmixError } from './vmix.js';
 import { IngestStore, decideAuth, ingestPath, INGEST_APP } from './ingest.js';
 import { MediaMtxMonitor } from './mediamtx.js';
 import { StreamAnalyzer } from './analyzer.js';
+import { ServiceStatus } from './servicestatus.js';
+import { VmixCalls } from './vmixcalls.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -48,10 +51,29 @@ const mediamtx = new MediaMtxMonitor();
 mediamtx.start();
 const analyzer = new StreamAnalyzer(mediamtx);
 if (process.env.ANALYZER !== 'off') analyzer.start();
+const services = new ServiceStatus();
+if (process.env.STATUS_CHECKS !== 'off') services.start();
+const calls = await new VmixCalls().load();
+calls.start();
+
+// Public guest hostname: serves ONLY the guest join flow, never the dashboard.
+const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
+const JOIN_PUBLIC_BASE = process.env.JOIN_PUBLIC_BASE || `https://${JOIN_HOST}`;
 
 const app = express();
-app.use(express.json({ limit: '256kb' }));
 app.disable('x-powered-by');
+app.use((req, res, next) => {
+  if (String(req.hostname).toLowerCase() !== JOIN_HOST) return next();
+  const ok = /^\/(join\/[\w-]+|api\/join\/.*|style\.css|join\.js|brand\/[\w.-]+)$/.test(req.path);
+  if (ok) return next();
+  res.status(404).type('text').send('Not found');
+});
+// Guest upload speed test needs a raw body; everything else is JSON.
+app.post('/api/join/speed/up', express.raw({ type: '*/*', limit: '4mb' }), (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ bytes: req.body?.length || 0 });
+});
+app.use(express.json({ limit: '256kb' }));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -105,6 +127,55 @@ function gateProducer(req, res, next) {
 // Producer routes (public)
 // ---------------------------------------------------------------------------
 app.get('/', (req, res) => sendPage(res, 'home.html'));
+app.get('/guests', (req, res) => sendPage(res, 'guests.html'));
+app.get('/join/:code', (req, res) => sendPage(res, 'join.html'));
+
+// ---- Outage checker (not sensitive; the dashboard host sits behind Access) ----
+app.get('/api/status/services', (req, res) => res.json({ services: services.snapshot() }));
+
+// ---- Guest join API (public; the invite code is the credential) -----------
+// Small per-IP limiter on code lookups so codes can't be brute-forced.
+const joinHits = new Map();
+function joinLimiter(req, res, next) {
+  const ip = req.headers['cf-connecting-ip'] || req.socket.remoteAddress;
+  const now = Date.now();
+  const rec = joinHits.get(ip) || { n: 0, reset: now + 60_000 };
+  if (now > rec.reset) { rec.n = 0; rec.reset = now + 60_000; }
+  rec.n += 1;
+  joinHits.set(ip, rec);
+  if (rec.n > 60) return res.status(429).json({ error: 'slow-down' });
+  next();
+}
+const SPEED_BLOB = crypto.randomBytes(2 * 1024 * 1024);
+app.get('/api/join/speed/down', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/octet-stream').send(SPEED_BLOB);
+});
+app.get('/api/join/ping', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json({ t: Date.now() }); });
+const JoinEvent = z.object({ type: z.enum(['opened', 'check', 'joining']), details: z.record(z.any()).optional() });
+const JoinGo = z.object({ name: z.string().trim().min(1).max(60), details: z.record(z.any()).optional() });
+app.get('/api/join/:code', joinLimiter, (req, res) => {
+  const v = calls.guestView(req.params.code);
+  if (!v) return res.status(404).json({ error: 'not-found' });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(v);
+});
+app.post('/api/join/:code/event', joinLimiter, async (req, res) => {
+  const body = JoinEvent.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  const inv = await calls.guestEvent(req.params.code, body.data.type, body.data.details);
+  if (!inv) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+app.post('/api/join/:code/go', joinLimiter, async (req, res) => {
+  const body = JoinGo.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  const url = calls.joinUrl(req.params.code, body.data.name);
+  if (!url) return res.status(409).json({ error: 'not-ready' });
+  await calls.guestEvent(req.params.code, 'joining', body.data.details);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ url });
+});
 app.get('/producer', gateProducer, (req, res) => sendPage(res, 'index.html'));
 app.get('/grid.html', gateProducer, (req, res) => sendPage(res, 'grid.html'));
 app.get('/s/:id', gateProducer, (req, res) => sendPage(res, 'stream.html'));
@@ -346,6 +417,51 @@ admin.delete('/ingests/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- vMix machines + vMix Call guests -------------------------------------
+const MachineBody = z.object({
+  label: z.string().trim().min(1).max(40),
+  host: z.string().trim().min(1).max(100),
+  port: z.coerce.number().int().min(1).max(65535).default(8088),
+  username: z.string().max(100).optional().default(''),
+  password: z.string().max(200).optional().default(''),
+});
+admin.get('/vmix', (req, res) => res.json({ machines: calls.machinesView() }));
+admin.post('/vmix', async (req, res) => {
+  const body = MachineBody.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid', issues: body.error.issues });
+  res.status(201).json({ machine: await calls.addMachine(body.data) });
+});
+admin.put('/vmix/:id', async (req, res) => {
+  const body = MachineBody.partial().safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  const m = await calls.updateMachine(req.params.id, body.data);
+  if (!m) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+admin.delete('/vmix/:id', async (req, res) => {
+  if (!(await calls.removeMachine(req.params.id))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+
+const InviteBody = z.object({
+  machineId: z.string().min(1),
+  inputKey: z.string().min(1),
+  guestName: z.string().trim().max(60).optional().default(''),
+  show: z.string().trim().max(80).optional().default(''),
+});
+admin.get('/guests', (req, res) => res.json({ invites: calls.invitesView(), joinBase: JOIN_PUBLIC_BASE }));
+admin.post('/guests', async (req, res) => {
+  const body = InviteBody.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  const inv = await calls.createInvite(body.data);
+  if (!inv) return res.status(404).json({ error: 'call input not found on that vMix' });
+  res.status(201).json({ invite: inv, link: `${JOIN_PUBLIC_BASE}/join/${inv.code}` });
+});
+admin.delete('/guests/:code', async (req, res) => {
+  if (!(await calls.removeInvite(req.params.code))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+
 app.use('/api/admin', admin);
 
 // ---------------------------------------------------------------------------
@@ -430,6 +546,8 @@ async function shutdown(signal) {
   poller.stop();
   mediamtx.stop();
   analyzer.stop();
+  services.stop();
+  calls.stop();
   hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));
