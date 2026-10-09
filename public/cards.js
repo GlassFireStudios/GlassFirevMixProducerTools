@@ -8,7 +8,7 @@
 
     const brand = document.createElement('div');
     brand.className = 'brand';
-    brand.innerHTML = 'GlassFire <small>Producer Tools</small>';
+    brand.innerHTML = '<img class="brand-mark" src="/brand/livetools-icon.svg" alt="" /> GlassFire <small>Live Tools</small>';
     frag.appendChild(brand);
 
     streams.forEach((s, i) => {
