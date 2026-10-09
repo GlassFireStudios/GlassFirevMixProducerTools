@@ -29,6 +29,16 @@ async function call(url, opts = {}) {
   }
 }
 
+// Starlink product codes → readable names, e.g.
+// "us-premium-business-local-priority-50gb-data-block" → "Local Priority 50GB data block".
+export function humanizeProduct(id) {
+  if (!id) return null;
+  let t = String(id).replace(/^[a-z]{2}-/, '').replace(/^(premium|standard)-/, '').replace(/^business-/, '')
+    .replace(/-terminal-access-fee$/, '').replace(/-data-block$/, ' data block');
+  t = t.replace(/-/g, ' ').replace(/(d+)s?(gb|tb)/gi, (_, n, u) => `${n}${u.toUpperCase()}`);
+  return t.replace(/([a-z])/g, (m) => m.toUpperCase()).replace(/ Data Block$/, ' data block');
+}
+
 const round = (n, d = 1) => (Number.isFinite(n) ? Math.round(n * 10 ** d) / 10 ** d : null);
 
 // One data-usage result → what the dashboard shows. Remaining isn't a field in
@@ -42,14 +52,15 @@ export function summarizeUsage(r, productNames = {}) {
   const limit = plan.usageLimitGB ?? null;
   const used = plan.overageLine?.consumedAmountGB ?? priority;
   const blocks = (plan.dataPoolUsage?.dataBlocks || cur?.dataPoolUsage || []).map((b) => ({
-    name: b.name ?? b.dataBlockName ?? b.productId ?? 'Data block',
+    name: b.name ?? b.dataBlockName ?? humanizeProduct(b.productId) ?? 'Data block',
+    expires: b.expirationDateUtc ?? null,
     totalGB: b.totalAmountGB ?? null,
     usedGB: b.consumedAmountGB ?? null,
     leftGB: b.totalAmountGB != null && b.consumedAmountGB != null ? round(b.totalAmountGB - b.consumedAmountGB) : null,
   }));
   return {
     serviceLine: r?.serviceLineNumber ?? null,
-    plan: productNames[plan.productId] || plan.productId || null,
+    plan: productNames[plan.productId] || humanizeProduct(plan.productId) || null,
     cycleStart: cur?.startDate ?? null,
     cycleEnd: cur?.endDate ?? null,
     priorityGB: round(priority),
@@ -158,12 +169,16 @@ export class Starlink {
       this.lines = await this._all('/public/v2/service-lines');
       const products = await this._all('/public/v2/products').catch(() => []);
       const names = Object.fromEntries(products.map((p) => [p.productReferenceId, p.name]));
-      for (const l of this.lines) l.planName = names[l.productReferenceId] || l.productReferenceId;
+      for (const l of this.lines) l.planName = names[l.productReferenceId] || humanizeProduct(l.productReferenceId);
       const usage = await this.api('POST', '/public/v2/data-usage/query?page=0&limit=100',
         { serviceLineNumbers: [], previousBillingCycles: 0, activeServiceLinesOnly: true });
       this.raw.usage = usage;
       const nick = Object.fromEntries(this.lines.map((l) => [l.serviceLineNumber, l.nickname]));
-      this.usage = (usage?.results || []).map((r) => ({ ...summarizeUsage(r, names), nickname: nick[r.serviceLineNumber] || null }));
+      const linePlan = Object.fromEntries(this.lines.map((l) => [l.serviceLineNumber, l.planName]));
+      this.usage = (usage?.results || []).map((r) => {
+        const u = summarizeUsage(r, names);
+        return { ...u, plan: linePlan[r.serviceLineNumber] || u.plan, nickname: nick[r.serviceLineNumber] || null };
+      });
       this.terminals = await this._all('/public/v2/user-terminals').catch(() => []);
       this.error = null;
       this.usageAt = Date.now();
@@ -177,7 +192,9 @@ export class Starlink {
     try {
       const t = await this.api('POST', '/public/v2/telemetry/query', { includeUserTerminals: true, userTerminalIds: [] });
       this.raw.telemetry = t;
-      const list = Array.isArray(t) ? t : (t?.userTerminals || t?.results || []);
+      // userTerminals comes back keyed by terminal ID (an object), not an array.
+      const ut = Array.isArray(t) ? t : (t?.userTerminals ?? t?.results ?? []);
+      const list = Array.isArray(ut) ? ut : Object.values(ut || {});
       this.telemetry = list.map((x) => ({
         id: x.userTerminalId ?? x.deviceId ?? null,
         downMbps: round(x.downlinkThroughputMbps),
@@ -187,6 +204,8 @@ export class Starlink {
         obstructionPct: x.obstructionPercentTime != null ? round(x.obstructionPercentTime * (x.obstructionPercentTime <= 1 ? 100 : 1), 2) : null,
         signal: x.signalQuality != null ? round(x.signalQuality * 100, 0) : null,
         uptimeSec: x.uptimeSeconds ?? null,
+        at: x.timestamp ?? null,
+        software: x.softwareVersion ?? null,
         alerts: Object.entries(x).filter(([k, v]) => /^alert/i.test(k) && v === true).map(([k]) => k.replace(/^alert/, '')),
       }));
       this.telemetryAt = Date.now();

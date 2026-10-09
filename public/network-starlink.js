@@ -15,9 +15,11 @@
     const t = d.telemetry;
     if (!t) return `<li class="muted small">${esc(d.nickname || d.serial || 'Dish')}: no live telemetry (offline or not reporting)</li>`;
     const warn = (t.dropPct ?? 0) > 2 || (t.obstructionPct ?? 0) > 1 || (t.latencyMs ?? 0) > 80;
+    const ageMin = t.at ? Math.round((Date.now() - Date.parse(t.at)) / 60000) : null;
+    const stale = ageMin != null && ageMin > 2;
     return `<li class="${warn ? 'sig-warn' : ''}"><b>${esc(d.nickname || d.serial || 'Dish')}</b>:
       ${t.downMbps ?? '—'} down / ${t.upMbps ?? '—'} up Mbps · ${t.latencyMs ?? '—'} ms · ${t.dropPct ?? '—'}% drop
-      · ${t.obstructionPct ?? '—'}% obstructed · signal ${t.signal ?? '—'}%${t.alerts.length ? ` · alerts: ${esc(t.alerts.join(', '))}` : ''}</li>`;
+      · ${t.obstructionPct ?? '—'}% obstructed · signal ${t.signal ?? '—'}%${t.alerts.length ? ` · alerts: ${esc(t.alerts.join(', '))}` : ''}${stale ? `<span class="muted"> · last report ${ageMin < 120 ? `${ageMin} min` : `${Math.round(ageMin / 60)} h`} ago (dish likely off)</span>` : '<span class="sig-ok"> · live</span>'}</li>`;
   }
 
   function line(l) {

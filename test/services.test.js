@@ -123,3 +123,12 @@ test('summarizeUsage: remaining = plan limit - used this cycle', () => {
   assert.equal(u.daily.length, 1);
   assert.equal(summarizeUsage({}).leftGB, null);
 });
+
+import { humanizeProduct } from '../src/starlink.js';
+
+test('humanizeProduct', () => {
+  assert.equal(humanizeProduct('us-premium-business-local-priority-50gb-data-block'), 'Local Priority 50GB data block');
+  assert.equal(humanizeProduct('us-premium-business-local-priority-terminal-access-fee'), 'Local Priority');
+  assert.equal(humanizeProduct('us-premium-business-global-priority-terminal-access-fee'), 'Global Priority');
+  assert.equal(humanizeProduct(null), null);
+});
