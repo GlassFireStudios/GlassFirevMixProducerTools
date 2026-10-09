@@ -1,6 +1,6 @@
 {
   "name": "glassfire-vmix-producer-tools",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "GlassFire vMix Producer Tools — hub that polls vMix Web APIs over the public internet and serves per-stream playlist countdowns to remote producers, with a Companion-style admin dashboard and a named Cloudflare tunnel.",
   "type": "module",
   "engines": {

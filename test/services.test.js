@@ -103,3 +103,23 @@ test('summarizeData: eSIM plan, per-SIM remaining, month usage', () => {
   assert.equal(r.monthUsage.downMb, 47044.9);
   assert.equal(summarizeData({}, null).plan, null);
 });
+
+import { summarizeUsage } from '../src/starlink.js';
+
+test('summarizeUsage: remaining = plan limit - used this cycle', () => {
+  const u = summarizeUsage({
+    serviceLineNumber: 'SL-1', lastUpdated: '2026-10-08T00:00:00Z',
+    billingCycles: [
+      { startDate: '2026-09-01', endDate: '2026-09-30', totalPriorityGB: 90, totalStandardGB: 0 },
+      { startDate: '2026-10-01', endDate: '2026-10-31', totalPriorityGB: 12.34, totalStandardGB: 3.2, dailyDataUsage: [{ date: '2026-10-01', priorityGB: 1, standardGB: 0 }] },
+    ],
+    servicePlan: { productId: 'p1', usageLimitGB: 50, isOptedIntoOverage: true, overageLine: { consumedAmountGB: 12.34, overageAmountGB: 0 } },
+  }, { p1: 'Local Priority 50GB' });
+  assert.equal(u.plan, 'Local Priority 50GB');
+  assert.equal(u.cycleStart, '2026-10-01');
+  assert.equal(u.usedGB, 12.3);
+  assert.equal(u.leftGB, 37.7);
+  assert.equal(u.standardGB, 3.2);
+  assert.equal(u.daily.length, 1);
+  assert.equal(summarizeUsage({}).leftGB, null);
+});

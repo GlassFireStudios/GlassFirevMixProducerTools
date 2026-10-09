@@ -339,3 +339,4 @@ pre.raw { max-height: 420px; overflow: auto; background: var(--bg); border: 1px 
 .plan-bar > div { height: 100%; background: linear-gradient(90deg, #0099D2, #3C5BA9); }
 .plan.low .plan-bar > div { background: var(--warn); }
 .plan-nums { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: .4rem; font-size: .85rem; }
+.dishes { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .85rem; line-height: 1.6; }

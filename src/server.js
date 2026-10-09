@@ -24,6 +24,7 @@ import { StreamAnalyzer } from './analyzer.js';
 import { ServiceStatus } from './servicestatus.js';
 import { VmixCalls } from './vmixcalls.js';
 import { Peplink } from './peplink.js';
+import { Starlink } from './starlink.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -58,6 +59,8 @@ const calls = await new VmixCalls().load();
 calls.start();
 const peplink = await new Peplink().load();
 peplink.start();
+const starlink = await new Starlink().load();
+starlink.start();
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
@@ -437,6 +440,21 @@ admin.put('/peplink/config', async (req, res) => {
 });
 admin.post('/peplink/refresh', async (req, res) => { await peplink.tick(); res.json(peplink.view()); });
 
+// ---- Starlink (account API, read-only service account) --------------------
+const StarlinkCfg = z.object({
+  clientId: z.string().trim().max(200).optional(),
+  clientSecret: z.string().trim().max(500).optional(),
+});
+admin.get('/starlink', (req, res) => res.json(starlink.view()));
+admin.get('/starlink/raw', (req, res) => res.json(starlink.raw));
+admin.put('/starlink/config', async (req, res) => {
+  const body = StarlinkCfg.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: 'invalid' });
+  await starlink.setConfig(body.data);
+  res.json(starlink.view());
+});
+admin.post('/starlink/refresh', async (req, res) => { await starlink.pollUsage(); await starlink.pollTelemetry(); res.json(starlink.view()); });
+
 // ---- vMix machines + vMix Call guests -------------------------------------
 const MachineBody = z.object({
   label: z.string().trim().min(1).max(40),
@@ -569,6 +587,7 @@ async function shutdown(signal) {
   services.stop();
   calls.stop();
   peplink.stop();
+  starlink.stop();
   hookServer.close();
   await tunnel.stop().catch(() => {});
   server.close(() => process.exit(0));
