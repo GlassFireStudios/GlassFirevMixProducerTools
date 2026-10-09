@@ -87,6 +87,17 @@
       <button class="btn" id="saveSettings">Save settings</button>
       <span class="muted" id="settingsSaved" style="margin-left:.6rem"></span>
     </div>
+
+    <div class="section">
+      <h2>Admin password</h2>
+      <div class="row">
+        <label class="field"><span>Current password</span><input type="password" id="pwCurrent" autocomplete="current-password" /></label>
+        <label class="field"><span>New password (12+ characters)</span><input type="password" id="pwNext" autocomplete="new-password" /></label>
+        <label class="field"><span>Confirm new password</span><input type="password" id="pwConfirm" autocomplete="new-password" /></label>
+      </div>
+      <button class="btn" id="pwSave">Change password</button>
+      <span class="muted" id="pwMsg" style="margin-left:.6rem"></span>
+    </div>
   </div>
 
   <!-- Add/Edit modal -->

@@ -199,6 +199,20 @@ admin.post('/test', async (req, res) => {
   res.json(result);
 });
 
+// Change the admin password (requires the current one).
+const PasswordChange = z.object({
+  current: z.string().min(1).max(200),
+  next: z.string().min(12, 'at least 12 characters').max(200),
+});
+admin.put('/password', async (req, res) => {
+  const body = PasswordChange.safeParse(req.body ?? {});
+  if (!body.success) return res.status(400).json({ error: body.error.issues[0]?.message || 'invalid' });
+  if (!settings.verifyAdmin(body.data.current)) return res.status(403).json({ error: 'current password is wrong' });
+  await settings.setAdminPassword(body.data.next);
+  await fsp.rm(path.join(__dirname, '..', 'data', 'admin-password.txt'), { force: true });
+  res.json({ ok: true });
+});
+
 // Settings
 admin.get('/settings', (req, res) => {
   res.json(settings.publicSettings());
@@ -349,14 +363,11 @@ function producerDeniedPage() {
 server.listen(PORT, async () => {
   console.log(`[hub] producer + admin on http://localhost:${PORT}  (admin: /admin)`);
   if (settings.generatedAdminPassword) {
-    // Surface the one-time plaintext to a gitignored file (never committed/logged
-    // to a tracked path) and the console, so it can be saved to a password manager.
+    // Surface the one-time plaintext ONLY to a gitignored, owner-only file. Never
+    // to the console: under systemd that lands in the journal.
     const pwFile = path.join(__dirname, '..', 'data', 'admin-password.txt');
-    await fsp.writeFile(pwFile, `${settings.generatedAdminPassword}\n`, 'utf8').catch(() => {});
-    console.log('[hub] ──────────────────────────────────────────────');
-    console.log(`[hub] Generated admin password: ${settings.generatedAdminPassword}`);
-    console.log(`[hub] Saved once to ${pwFile} — store it, then delete that file.`);
-    console.log('[hub] ──────────────────────────────────────────────');
+    await fsp.writeFile(pwFile, `${settings.generatedAdminPassword}\n`, { encoding: 'utf8', mode: 0o600 }).catch(() => {});
+    console.log(`[hub] Generated an admin password and saved it once to ${pwFile}. Store it, then delete that file.`);
   }
   // Auto-start the tunnel when a named token exists, or quick mode is selected.
   const cfg = settings.tunnel;

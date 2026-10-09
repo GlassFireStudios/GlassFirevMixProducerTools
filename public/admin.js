@@ -239,6 +239,18 @@
     refreshSettings(); refreshConnections(); refreshTunnel();
   });
 
+  // ---- admin password ------------------------------------------------------
+  $('pwSave').addEventListener('click', async () => {
+    const msg = $('pwMsg');
+    msg.textContent = '';
+    if ($('pwNext').value !== $('pwConfirm').value) { msg.textContent = 'New passwords do not match'; return; }
+    try {
+      await api('/password', { method: 'PUT', body: JSON.stringify({ current: $('pwCurrent').value, next: $('pwNext').value }) });
+      ['pwCurrent', 'pwNext', 'pwConfirm'].forEach((id) => ($(id).value = ''));
+      msg.textContent = 'Password changed';
+    } catch (e) { msg.textContent = 'Not changed: ' + e.message; }
+  });
+
   // ---- lifecycle -----------------------------------------------------------
   let timer = null;
   async function start() {
