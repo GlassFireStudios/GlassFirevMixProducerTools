@@ -51,7 +51,7 @@
     window.addEventListener('keydown', (e) => {
       if (e.target.matches('input,select,textarea')) return;
       if (e.key === 'g') { location.href = GF.withToken('/grid.html'); return; }
-      if (e.key === 'Escape') { location.href = GF.withToken('/'); return; }
+      if (e.key === 'Escape') { location.href = GF.withToken('/producer'); return; }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9 && store.streams[n - 1]) {
         location.href = GF.withToken('/s/' + encodeURIComponent(store.streams[n - 1].id));

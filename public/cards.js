@@ -6,9 +6,10 @@
   GF.renderSwitcher = function (el, streams, states, activeId) {
     const frag = document.createDocumentFragment();
 
-    const brand = document.createElement('div');
+    const brand = document.createElement('a');
+    brand.href = '/';
     brand.className = 'brand';
-    brand.innerHTML = '<img class="brand-mark" src="/brand/livetools-icon.svg" alt="" /> GlassFire <small>Live Tools</small>';
+    brand.innerHTML = '<img class="brand-mark" src="/brand/livetools-icon.svg" alt="" width="24" height="24" /> GlassFire <small>Live Tools</small>';
     frag.appendChild(brand);
 
     streams.forEach((s, i) => {

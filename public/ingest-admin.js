@@ -82,7 +82,7 @@
     if (a === 'toggle') {
       await api(`/ingests/${i.id}`, { method: 'PUT', body: JSON.stringify({ enabled: !i.enabled }) });
     } else if (a === 'regen') {
-      if (!confirm(`Make a new key for “${i.name}”?\n\nThe old key stops working for NEW connections immediately. Update Riverside and the vMix input afterwards.`)) return;
+      if (!confirm(`Make a new key for “${i.name}”?\n\nThe old key stops working for NEW connections immediately. Update the encoder and the vMix input afterwards.`)) return;
       await api(`/ingests/${i.id}/regenerate`, { method: 'POST' });
       openSetup(i.id);
     } else if (a === 'del') {
@@ -114,8 +114,8 @@
     $('imTitle').textContent = i.name;
     $('imBody').innerHTML = `
       <div id="imStatus" class="im-status"></div>
-      <h4>1 · In Riverside (or any RTMP encoder)</h4>
-      <p class="muted">Destinations → Custom RTMP</p>
+      <h4>1 · In your RTMP encoder</h4>
+      <p class="muted">Use a custom RTMP destination.</p>
       ${field('Stream URL', s.publisher.rtmpServer)}
       ${field('Stream key', s.publisher.streamKey, true)}
       <h4>2 · In vMix (any machine in the Broadcast group)</h4>
@@ -137,7 +137,7 @@
     const live = i.live;
     el.innerHTML = live?.online
       ? `<span class="status-dot ok"></span> <b>LIVE</b> · ${esc(live.tracks.video || '')} ${live.tracks.audio ? '· ' + esc(live.tracks.audio) : ''} · ${fmtKbps(live.kbps)} · up ${fmtUp(live.since)}`
-      : `<span class="status-dot offline"></span> Waiting for the stream. Go live in Riverside and this turns green.`;
+      : `<span class="status-dot offline"></span> Waiting for the stream. Start streaming from the encoder and this turns green.`;
   }
 
   function closeModal() { openId = null; $('ingestModal').classList.add('hidden'); }

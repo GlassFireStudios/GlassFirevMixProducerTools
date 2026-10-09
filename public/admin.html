@@ -13,7 +13,7 @@
   <!-- Login gate -->
   <div class="login-back" id="login">
     <form class="login-box" id="loginForm">
-      <img class="login-mark" src="/brand/livetools-icon.svg" alt="" />
+      <img class="login-mark" src="/brand/livetools-icon.svg" alt="" width="96" height="96" />
       <h1>GlassFire Live Tools</h1>
       <label class="field"><span>Admin password</span>
         <input type="password" id="loginPw" autocomplete="current-password" autofocus />
@@ -25,14 +25,14 @@
 
   <div class="admin-wrap hidden" id="app">
     <div class="admin-head">
-      <img class="brand-mark lg" src="/brand/livetools-icon.svg" alt="" />
-      <h1>GlassFire Live Tools</h1>
+      <a class="admin-brand" href="/"><img class="brand-mark lg" src="/brand/livetools-icon.svg" alt="" width="40" height="40" />
+      <h1>GlassFire Live Tools</h1></a>
       <div class="spacer"></div>
       <span class="conn-pill" id="hubPill"><span class="dot"></span> hub</span>
       <button class="btn secondary" id="logoutBtn">Sign out</button>
     </div>
 
-    <div class="section">
+    <div class="section" id="ingest">
       <div class="section-head">
         <h2>Ingest</h2>
         <span class="pill off" id="mtxPill">MediaMTX …</span>
@@ -45,11 +45,11 @@
         </thead>
         <tbody id="ingestRows"></tbody>
       </table>
-      <div class="empty hidden" id="ingestEmpty">No ingests yet. Click “New ingest” to make a stream key for Riverside or any RTMP/SRT source.</div>
+      <div class="empty hidden" id="ingestEmpty">No ingests yet. Click “New ingest” to make a stream key for any RTMP or SRT encoder.</div>
       <div id="otherPaths"></div>
     </div>
 
-    <div class="section">
+    <div class="section" id="connections">
       <div class="section-head">
         <h2>vMix Connections</h2>
         <div class="spacer"></div>
@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="settings">
       <h2>Settings</h2>
       <div class="row">
         <label class="field"><span>Producer access token (optional — requires <code>?k=TOKEN</code> on producer links)</span>

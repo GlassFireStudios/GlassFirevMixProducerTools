@@ -66,6 +66,23 @@ poller.start();
 const tunnel = new TunnelManager(() => settings.tunnel, PORT);
 
 // ---------------------------------------------------------------------------
+// Pages: stamp local CSS/JS URLs with the app version so a deploy can never pair
+// a new page with a cached old stylesheet.
+// ---------------------------------------------------------------------------
+const APP_VERSION = JSON.parse(await fsp.readFile(path.join(__dirname, '..', 'package.json'), 'utf8')).version;
+const pageCache = new Map();
+async function sendPage(res, file) {
+  let html = pageCache.get(file);
+  if (!html) {
+    html = (await fsp.readFile(path.join(PUBLIC_DIR, file), 'utf8'))
+      .replace(/(href|src)="(\/[\w./-]+\.(?:css|js))"/g, `$1="$2?v=${APP_VERSION}"`);
+    pageCache.set(file, html);
+  }
+  res.setHeader('Cache-Control', 'no-cache');
+  res.type('html').send(html);
+}
+
+// ---------------------------------------------------------------------------
 // Producer access-token gate (optional)
 // ---------------------------------------------------------------------------
 function producerAllowed(req) {
@@ -84,9 +101,10 @@ function gateProducer(req, res, next) {
 // ---------------------------------------------------------------------------
 // Producer routes (public)
 // ---------------------------------------------------------------------------
-app.get('/', gateProducer, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
-app.get('/grid.html', gateProducer, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'grid.html')));
-app.get('/s/:id', gateProducer, (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'stream.html')));
+app.get('/', (req, res) => sendPage(res, 'home.html'));
+app.get('/producer', gateProducer, (req, res) => sendPage(res, 'index.html'));
+app.get('/grid.html', gateProducer, (req, res) => sendPage(res, 'grid.html'));
+app.get('/s/:id', gateProducer, (req, res) => sendPage(res, 'stream.html'));
 
 app.get('/api/streams', gateProducer, (req, res) => {
   res.json({ streams: store.enabled().map(publicView), states: poller.snapshot() });
@@ -109,12 +127,18 @@ app.use((req, res, next) => {
 });
 
 // Static assets (css/js). HTML is handled by explicit gated routes above.
-app.use(express.static(PUBLIC_DIR, { index: false, extensions: [] }));
+// no-cache = always revalidate (ETag), so browsers and Cloudflare never serve a
+// stale stylesheet against a newer page.
+app.use(express.static(PUBLIC_DIR, {
+  index: false,
+  extensions: [],
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 
 // ---------------------------------------------------------------------------
 // Admin dashboard (gated)
 // ---------------------------------------------------------------------------
-app.get('/admin', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html')));
+app.get('/admin', (req, res) => sendPage(res, 'admin.html'));
 
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body ?? {};

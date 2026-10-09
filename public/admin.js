@@ -29,6 +29,8 @@
       });
       if (!res.ok) { $('loginErr').textContent = 'Incorrect password'; return; }
       $('loginPw').value = '';
+      const next = new URLSearchParams(location.search).get('next');
+      if (next && next.startsWith('/') && !next.startsWith('//')) { location.href = next; return; }
       showApp(); start();
     } catch { $('loginErr').textContent = 'Login failed'; }
   });
