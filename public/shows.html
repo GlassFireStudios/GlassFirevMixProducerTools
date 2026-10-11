@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Shows · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+  </header>
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Shows</h1>
+      <span class="muted">white-label watch pages</span>
+      <div class="spacer"></div>
+      <button class="btn" id="add">+ New show</button>
+    </div>
+    <div class="signin hidden" id="signin"><p>Sign in to manage shows.</p><a class="btn" href="/admin?next=/shows">Sign in</a></div>
+    <div id="list"></div>
+    <p class="muted small">Video comes from AWS IVS. In vMix, stream to the channel's ingest server (rtmps://…live-video.net:443/app/) with its stream key from the IVS console. Paste the channel's playback URL (.m3u8) here.</p>
+  </main>
+
+  <div class="modal-back hidden" id="modal">
+    <div class="modal">
+      <h3 id="mTitle">Show</h3>
+      <input type="hidden" id="fSlugOld" />
+      <div class="row">
+        <label class="field"><span>Title</span><input id="fTitle" maxlength="120" /></label>
+        <label class="field"><span>URL name (live.glassfire.co/…)</span><input id="fSlug" maxlength="60" /></label>
+      </div>
+      <label class="field"><span>Subtitle (optional)</span><input id="fSub" maxlength="200" /></label>
+      <label class="field"><span>IVS playback URL (.m3u8)</span><input id="fUrl" maxlength="500" /></label>
+      <label class="field"><span>Logo URL (https, optional)</span><input id="fLogo" maxlength="500" /></label>
+      <div class="row">
+        <label class="field"><span>Orientation</span><select id="fOrient"><option value="horizontal">Horizontal 16:9</option><option value="vertical">Vertical 9:16</option></select></label>
+        <label class="field"><span>Accent</span><input id="fAccent" type="color" /></label>
+        <label class="field"><span>Background</span><input id="fBg" type="color" /></label>
+      </div>
+      <label class="field"><span>Offline message</span><input id="fOff" maxlength="200" placeholder="The stream will begin shortly." /></label>
+      <div class="foot"><button class="btn secondary" id="cancel">Cancel</button><button class="btn" id="save">Save</button></div>
+    </div>
+  </div>
+  <script src="/shows.js"></script>
+</body>
+</html>

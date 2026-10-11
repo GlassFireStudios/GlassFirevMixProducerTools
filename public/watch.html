@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Live</title>
+  <style>
+    :root { --accent: #ffffff; --bg: #000000; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: clamp(12px, 3vw, 32px) clamp(12px, 3vw, 32px) 40px; }
+    header { display: flex; align-items: center; gap: 16px; min-height: 48px; margin-bottom: clamp(12px, 2vw, 20px); }
+    header img { max-height: 48px; max-width: 220px; object-fit: contain; }
+    header .titles { display: flex; flex-direction: column; }
+    header h1 { margin: 0; font-size: clamp(18px, 2.4vw, 26px); font-weight: 650; letter-spacing: .01em; }
+    header p { margin: 2px 0 0; opacity: .7; font-size: 14px; }
+    .live { margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .5; }
+    .live.on { color: var(--accent); opacity: 1; }
+    .stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+    /* Vertical shows: phone-shaped 9:16 player, as tall as the screen allows. */
+    body.vertical .wrap { max-width: 720px; }
+    body.vertical .stage { aspect-ratio: 9 / 16; height: min(82vh, calc((100vw - 24px) * 16 / 9)); width: auto; margin: 0 auto; }
+    video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+    .slate { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: #000; font-size: clamp(16px, 2vw, 22px); opacity: .85; }
+    .hidden { display: none !important; }
+    .unmute { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--accent); color: #000; border: 0; border-radius: 999px; padding: 10px 18px; font: 600 15px/1 inherit; cursor: pointer; }
+    .unmute:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img id="logo" alt="" class="hidden" />
+      <div class="titles"><h1 id="title"></h1><p id="subtitle"></p></div>
+      <span class="live" id="liveTag">OFFLINE</span>
+    </header>
+    <div class="stage">
+      <video id="video" playsinline controls></video>
+      <div class="slate" id="slate">Loading…</div>
+      <button class="unmute hidden" id="unmute">Tap to unmute</button>
+    </div>
+  </div>
+  <script src="https://player.live-video.net/1.36.0/amazon-ivs-player.min.js"></script>
+  <script src="/watch.js"></script>
+</body>
+</html>

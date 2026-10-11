@@ -26,6 +26,7 @@ import { VmixCalls } from './vmixcalls.js';
 import { Peplink } from './peplink.js';
 import { Starlink } from './starlink.js';
 import { FusionHub } from './fusionhub.js';
+import { Shows, publicShow } from './shows.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -64,13 +65,32 @@ const starlink = await new Starlink().load();
 starlink.start();
 const fusionhub = await new FusionHub().load();
 fusionhub.start();
+const shows = await new Shows().load();
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
 const JOIN_PUBLIC_BASE = process.env.JOIN_PUBLIC_BASE || `https://${JOIN_HOST}`;
 
+const LIVE_HOST = (process.env.LIVE_HOST || 'live.glassfire.co').toLowerCase();
+
 const app = express();
 app.disable('x-powered-by');
+app.use((req, res, next) => {
+  if (String(req.hostname).toLowerCase() !== LIVE_HOST) return next();
+  // Short edge cache + serve stale if the box is briefly unreachable.
+  const cache = 'public, max-age=60, stale-while-revalidate=300, stale-if-error=86400';
+  if (req.path === '/watch.js') { res.setHeader('Cache-Control', cache); return res.sendFile(path.join(PUBLIC_DIR, 'watch.js')); }
+  let m = /^\/api\/show\/([\w-]+)$/.exec(req.path);
+  if (m) {
+    const show = shows.get(m[1]);
+    if (!show || show.enabled === false) return res.status(404).json({ error: 'not-found' });
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-if-error=86400');
+    return res.json(publicShow(show));
+  }
+  m = /^\/([\w-]+)\/?$/.exec(req.path);
+  if (m && shows.get(m[1])) { res.setHeader('Cache-Control', cache); return res.sendFile(path.join(PUBLIC_DIR, 'watch.html')); }
+  res.status(404).type('text').send('Not found');
+});
 app.use((req, res, next) => {
   if (String(req.hostname).toLowerCase() !== JOIN_HOST) return next();
   const ok = /^\/(join\/[\w-]+|api\/join\/.*|style\.css|join\.js|brand\/[\w.-]+)$/.test(req.path);
@@ -139,6 +159,7 @@ app.get('/', (req, res) => sendPage(res, 'home.html'));
 app.get('/guests', (req, res) => sendPage(res, 'guests.html'));
 app.get('/network', (req, res) => sendPage(res, 'network.html'));
 app.get('/vmix', (req, res) => sendPage(res, 'vmix.html'));
+app.get('/shows', (req, res) => sendPage(res, 'shows.html'));
 app.get('/join/:code', (req, res) => sendPage(res, 'join.html'));
 
 // ---- Outage checker (not sensitive; the dashboard host sits behind Access) ----
@@ -479,6 +500,39 @@ admin.put('/starlink/config', async (req, res) => {
   res.json(starlink.view());
 });
 admin.post('/starlink/refresh', async (req, res) => { await starlink.pollUsage(); await starlink.pollTelemetry(); res.json(starlink.view()); });
+
+// ---- White-label shows (live.<domain>/<slug>) --------------------------------
+const ShowBody = z.object({
+  slug: z.string().trim().max(60).optional(),
+  title: z.string().trim().max(120).optional(),
+  subtitle: z.string().trim().max(200).optional(),
+  playbackUrl: z.string().trim().max(500).optional(),
+  logoUrl: z.string().trim().max(500).optional(),
+  accent: z.string().trim().max(7).optional(),
+  background: z.string().trim().max(7).optional(),
+  offlineMessage: z.string().trim().max(200).optional(),
+  enabled: z.boolean().optional(),
+  orientation: z.enum(['horizontal', 'vertical']).optional(),
+});
+admin.get('/shows', (req, res) => res.json({ shows: shows.list(), liveBase: `https://${LIVE_HOST}` }));
+admin.post('/shows', async (req, res) => {
+  const b = ShowBody.safeParse(req.body ?? {});
+  if (!b.success) return res.status(400).json({ error: 'invalid' });
+  try { res.status(201).json({ show: await shows.create(b.data) }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.put('/shows/:slug', async (req, res) => {
+  const b = ShowBody.safeParse(req.body ?? {});
+  if (!b.success) return res.status(400).json({ error: 'invalid' });
+  try {
+    const s2 = await shows.update(req.params.slug, b.data);
+    if (!s2) return res.status(404).json({ error: 'not-found' });
+    res.json({ show: s2 });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.delete('/shows/:slug', async (req, res) => {
+  if (!(await shows.remove(req.params.slug))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
 
 // ---- vMix machines + vMix Call guests -------------------------------------
 const MachineBody = z.object({

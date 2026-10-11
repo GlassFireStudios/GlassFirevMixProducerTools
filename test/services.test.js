@@ -178,3 +178,16 @@ test('rateFrom computes Mbps from cumulative byte counters', () => {
   assert.equal(rateFrom(500, 100, 2000), null); // counter reset
   assert.equal(rateFrom(null, 100, 2000), null);
 });
+
+import { cleanShow, publicShow } from '../src/shows.js';
+
+test('shows: validation and public view', () => {
+  const s = cleanShow({ title: 'Equip Expo', playbackUrl: 'https://x.us-east-1.playback.live-video.net/api/video/v1/a.m3u8', accent: '#C3CC00', background: 'bad', orientation: 'vertical' }, { slug: 'equipexpo' });
+  assert.equal(s.background, '#000000');
+  assert.equal(s.orientation, 'vertical');
+  assert.throws(() => cleanShow({ playbackUrl: 'http://evil/x.m3u8' }));
+  assert.throws(() => cleanShow({ logoUrl: 'javascript:alert(1)' }));
+  const p = publicShow({ ...s, createdAt: 1 });
+  assert.equal(p.createdAt, undefined);
+  assert.equal(p.orientation, 'vertical');
+});
