@@ -27,6 +27,7 @@ import { Peplink } from './peplink.js';
 import { Starlink } from './starlink.js';
 import { FusionHub } from './fusionhub.js';
 import { Shows, publicShow } from './shows.js';
+import { ScreenChecks, cleanReport } from './screenchecks.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -66,6 +67,7 @@ starlink.start();
 const fusionhub = await new FusionHub().load();
 fusionhub.start();
 const shows = await new Shows().load();
+const screenChecks = await new ScreenChecks().load();
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
@@ -80,6 +82,7 @@ app.use((req, res, next) => {
   // Short edge cache + serve stale if the box is briefly unreachable.
   const cache = 'public, max-age=60, stale-while-revalidate=300, stale-if-error=86400';
   if (req.path === '/watch.js') { res.setHeader('Cache-Control', cache); return res.sendFile(path.join(PUBLIC_DIR, 'watch.js')); }
+  if (/^\/(check|check\.js|api\/check\/[\w]+)$/.test(req.path)) return checkRouter(req, res, next);
   let m = /^\/api\/show\/([\w-]+)$/.exec(req.path);
   if (m) {
     const show = shows.get(m[1]);
@@ -210,6 +213,38 @@ app.post('/api/join/:code/go', joinLimiter, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ url });
 });
+// ---- Screen check (public on live.glassfire.co/check; results on /screens) ----
+const checkRouter = express.Router();
+const SPEED_CHUNK = crypto.randomBytes(1024 * 1024);
+checkRouter.get('/check', (req, res) => sendPage(res, 'check.html'));
+checkRouter.get('/check.js', (req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(PUBLIC_DIR, 'check.js')); });
+checkRouter.get('/api/check/ping', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json({ t: Date.now() }); });
+// Incompressible bytes, streamed 1 MB at a time (up to 32 MB) for the download test.
+checkRouter.get('/api/check/down', joinLimiter, (req, res) => {
+  const mb = Math.min(32, Math.max(1, Number.parseInt(req.query.mb, 10) || 2));
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Length', String(mb * SPEED_CHUNK.length));
+  res.type('application/octet-stream');
+  let sent = 0;
+  const pump = () => {
+    while (sent < mb) {
+      sent += 1;
+      if (!res.write(SPEED_CHUNK)) return res.once('drain', pump);
+    }
+    res.end();
+  };
+  pump();
+});
+checkRouter.post('/api/check/report', joinLimiter, express.json({ limit: '16kb' }), async (req, res) => {
+  let report;
+  try { report = cleanReport(req.body ?? {}); } catch { return res.status(400).json({ error: 'invalid' }); }
+  const row = await screenChecks.add(report, req.headers['cf-connecting-ip'] || req.socket.remoteAddress);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, verdict: row.verdict });
+});
+app.use(checkRouter);
+app.get('/screens', (req, res) => sendPage(res, 'screens.html'));
+
 app.get('/producer', gateProducer, (req, res) => sendPage(res, 'index.html'));
 app.get('/grid.html', gateProducer, (req, res) => sendPage(res, 'grid.html'));
 app.get('/s/:id', gateProducer, (req, res) => sendPage(res, 'stream.html'));
@@ -530,6 +565,12 @@ admin.put('/shows/:slug', async (req, res) => {
     if (!s2) return res.status(404).json({ error: 'not-found' });
     res.json({ show: s2 });
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.get('/screen-checks', (req, res) => res.json({ checks: screenChecks.list(), checkUrl: `https://${LIVE_HOST}/check` }));
+admin.delete('/screen-checks', async (req, res) => { await screenChecks.clear(); res.json({ ok: true }); });
+admin.delete('/screen-checks/:id', async (req, res) => {
+  if (!(await screenChecks.remove(req.params.id))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
 });
 admin.delete('/shows/:slug', async (req, res) => {
   if (!(await shows.remove(req.params.slug))) return res.status(404).json({ error: 'not-found' });

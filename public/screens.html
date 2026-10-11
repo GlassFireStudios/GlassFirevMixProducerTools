@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Screens · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+  </header>
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Screens</h1>
+      <span class="muted">what each venue screen can really play</span>
+      <div class="spacer"></div>
+      <button class="btn small secondary" id="copy">Copy check link</button>
+      <button class="btn small danger" id="clear">Clear all</button>
+    </div>
+    <div class="signin hidden" id="signin"><p>Sign in to see screen checks.</p><a class="btn" href="/admin?next=/screens">Sign in</a></div>
+    <p class="muted small">Open <span class="mono" id="link">live.glassfire.co/check</span> on each screen's player. It tests by itself and lands here. Add <span class="mono">?name=Lobby%20TV%203</span> to name a screen up front.</p>
+    <div id="summary" class="small"></div>
+    <section class="panel"><div id="list"><p class="muted">Loading…</p></div></section>
+  </main>
+  <script src="/screens.js"></script>
+</body>
+</html>
