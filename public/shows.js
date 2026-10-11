@@ -48,7 +48,7 @@
     $('fLogo').value = s?.logoUrl || '';
     $('fOrient').value = s?.orientation || 'horizontal';
     $('fAccent').value = s?.accent || '#ffffff';
-    $('fBg').value = s?.background || '#000000';
+    $('fBg').value = s?.background || '#15181d';
     $('fOff').value = s?.offlineMessage || '';
     $('modal').classList.remove('hidden');
   }

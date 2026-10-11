@@ -28,7 +28,7 @@ export function cleanShow(input, prev = {}) {
     s.logoUrl = u;
   }
   if (input.accent != null) s.accent = HEX.test(input.accent) ? input.accent : '#ffffff';
-  if (input.background != null) s.background = HEX.test(input.background) ? input.background : '#000000';
+  if (input.background != null) s.background = HEX.test(input.background) ? input.background : '#15181d';
   if (input.offlineMessage != null) s.offlineMessage = str(input.offlineMessage, 200);
   if (input.enabled != null) s.enabled = !!input.enabled;
   if (input.orientation != null) s.orientation = input.orientation === 'vertical' ? 'vertical' : 'horizontal';
@@ -39,7 +39,7 @@ export function cleanShow(input, prev = {}) {
 export function publicShow(s) {
   return {
     slug: s.slug, title: s.title, subtitle: s.subtitle || '', playbackUrl: s.playbackUrl || '',
-    logoUrl: s.logoUrl || '', accent: s.accent || '#ffffff', background: s.background || '#000000',
+    logoUrl: s.logoUrl || '', accent: s.accent || '#ffffff', background: s.background || '#15181d',
     offlineMessage: s.offlineMessage || 'The stream will begin shortly.',
     orientation: s.orientation === 'vertical' ? 'vertical' : 'horizontal',
   };
@@ -60,7 +60,7 @@ export class Shows {
   async create(input) {
     let slug = slugify(input.slug || input.title || 'show');
     for (let n = 2; this.get(slug); n += 1) slug = `${slugify(input.slug || input.title)}-${n}`;
-    const s = cleanShow({ enabled: true, accent: '#ffffff', background: '#000000', ...input }, { slug, createdAt: Date.now() });
+    const s = cleanShow({ enabled: true, accent: '#ffffff', background: '#15181d', ...input }, { slug, createdAt: Date.now() });
     if (!s.title) s.title = slug;
     this.list().push(s);
     await this._save();

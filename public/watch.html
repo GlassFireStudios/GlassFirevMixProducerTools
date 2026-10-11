@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex" />
   <title>Live</title>
   <style>
-    :root { --accent: #ffffff; --bg: #000000; }
+    :root { --accent: #ffffff; --bg: #15181d; --rot: 0deg; }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     .wrap { max-width: 1280px; margin: 0 auto; padding: clamp(12px, 3vw, 32px) clamp(12px, 3vw, 32px) 40px; }
@@ -18,27 +18,45 @@
     .live { margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .5; }
     .live.on { color: var(--accent); opacity: 1; }
     .stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
-    /* Vertical shows: phone-shaped 9:16 player, as tall as the screen allows. */
     body.vertical .wrap { max-width: 720px; }
     body.vertical .stage { aspect-ratio: 9 / 16; height: min(82vh, calc((100vw - 24px) * 16 / 9)); width: auto; margin: 0 auto; }
     video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
     .slate { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: #000; font-size: clamp(16px, 2vw, 22px); opacity: .85; }
     .hidden { display: none !important; }
     .unmute { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--accent); color: #000; border: 0; border-radius: 999px; padding: 10px 18px; font: 600 15px/1 inherit; cursor: pointer; }
-    .unmute:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-    /* TV / signage mode (?tv, ?rotate=90|180|270, ?fit=cover): full screen, no chrome,
-       picture rotated to match how the screen is physically mounted. */
-    body.tv { overflow: hidden; cursor: none; background: #000; }
+
+    /* Screen controls for the on-site tech: rotate + full screen. Fade out when idle. */
+    .controls { position: fixed; top: 12px; right: 12px; z-index: 20; display: flex; gap: 6px; align-items: center; padding: 6px;
+      background: rgba(0, 0, 0, .72); border: 1px solid rgba(255, 255, 255, .18); border-radius: 8px; transition: opacity .3s ease; }
+    .controls.idle { opacity: 0; pointer-events: none; }
+    .controls span { font-size: 12px; opacity: .7; padding: 0 4px 0 6px; }
+    .controls button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, .25); border-radius: 4px; padding: 7px 10px; font: 600 13px/1 inherit; cursor: pointer; }
+    .controls button[aria-pressed="true"] { background: var(--accent); color: #000; border-color: var(--accent); }
+    .controls button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .controls .fs { margin-left: 6px; }
+
+    /* Screen mode (full screen, or any rotation): picture fills the display,
+       rotated to match how the screen is physically mounted. */
+    body.tv { overflow: hidden; background: #000; }
+    body.tv.idle-cursor { cursor: none; }
     body.tv .wrap { max-width: none; padding: 0; }
     body.tv header { display: none; }
     body.tv .stage { position: fixed; top: 50%; left: 50%; width: 100vw; height: 100vh; aspect-ratio: auto;
-      border-radius: 0; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); margin: 0; }
+      border-radius: 0; transform: translate(-50%, -50%) rotate(var(--rot)); margin: 0; }
     body.tv.sideways .stage { width: 100vh; height: 100vw; }
     body.tv video { object-fit: contain; }
     body.tv.cover video { object-fit: cover; }
   </style>
 </head>
 <body>
+  <div class="controls idle" id="controls" role="toolbar" aria-label="Screen controls">
+    <span>Rotate</span>
+    <button data-rot="0" aria-pressed="true">0°</button>
+    <button data-rot="90" aria-pressed="false">90°</button>
+    <button data-rot="180" aria-pressed="false">180°</button>
+    <button data-rot="270" aria-pressed="false">270°</button>
+    <button class="fs" id="fsBtn">Full screen</button>
+  </div>
   <div class="wrap">
     <header>
       <img id="logo" alt="" class="hidden" />
