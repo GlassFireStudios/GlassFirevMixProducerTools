@@ -88,7 +88,9 @@ app.use((req, res, next) => {
     return res.json(publicShow(show));
   }
   m = /^\/([\w-]+)\/?$/.exec(req.path);
-  if (m && shows.get(m[1])) { res.setHeader('Cache-Control', cache); return res.sendFile(path.join(PUBLIC_DIR, 'watch.html')); }
+  // Versioned script URL (?v=<app version>) so a deploy is never masked by a
+  // cached watch.js; Cloudflare stretches browser cache to hours on this zone.
+  if (m && shows.get(m[1])) return sendPage(res, 'watch.html', 'public, max-age=60, stale-if-error=86400');
   res.status(404).type('text').send('Not found');
 });
 app.use((req, res, next) => {
@@ -125,14 +127,14 @@ const tunnel = new TunnelManager(() => settings.tunnel, PORT);
 // ---------------------------------------------------------------------------
 const APP_VERSION = JSON.parse(await fsp.readFile(path.join(__dirname, '..', 'package.json'), 'utf8')).version;
 const pageCache = new Map();
-async function sendPage(res, file) {
+async function sendPage(res, file, cacheControl = 'no-cache') {
   let html = pageCache.get(file);
   if (!html) {
     html = (await fsp.readFile(path.join(PUBLIC_DIR, file), 'utf8'))
       .replace(/(href|src)="(\/[\w./-]+\.(?:css|js))"/g, `$1="$2?v=${APP_VERSION}"`);
     pageCache.set(file, html);
   }
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', cacheControl);
   res.type('html').send(html);
 }
 
