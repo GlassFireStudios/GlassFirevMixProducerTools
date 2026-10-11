@@ -15,7 +15,7 @@
     header .titles { display: flex; flex-direction: column; }
     header h1 { margin: 0; font-size: clamp(18px, 2.4vw, 26px); font-weight: 650; letter-spacing: .01em; }
     header p { margin: 2px 0 0; opacity: .7; font-size: 14px; }
-    .live { margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .5; }
+    .live { margin-left: auto; white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .5; }
     .live.on { color: var(--accent); opacity: 1; }
     .stage { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
     body.vertical .wrap { max-width: 720px; }
@@ -25,22 +25,29 @@
     .hidden { display: none !important; }
     .unmute { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--accent); color: #000; border: 0; border-radius: 999px; padding: 10px 18px; font: 600 15px/1 inherit; cursor: pointer; }
 
-    /* Screen controls for the on-site tech: rotate + full screen. Fade out when idle. */
-    .controls { position: fixed; bottom: 12px; right: 12px; z-index: 20; display: flex; gap: 6px; align-items: center; padding: 6px;
-      background: rgba(0, 0, 0, .72); border: 1px solid rgba(255, 255, 255, .18); border-radius: 8px; transition: opacity .3s ease; }
-    .controls.idle { opacity: 0; pointer-events: none; }
-    .controls span { font-size: 12px; opacity: .7; padding: 0 4px 0 6px; }
-    .controls button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, .25); border-radius: 4px; padding: 7px 10px; font: 600 13px/1 inherit; cursor: pointer; }
-    .controls button[aria-pressed="true"] { background: var(--accent); color: #000; border-color: var(--accent); }
-    .controls button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-    .controls .fs { margin-left: 6px; }
+    /* Screen controls for the on-site tech: quiet chips styled like the LIVE/OFFLINE
+       tag, just to its left. In full screen they float bottom-right and fade when idle. */
+    .controls { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+    .controls + .live { margin-left: 8px; }
+    .controls .chip-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; opacity: .4; margin-right: 2px; }
+    .controls button { background: transparent; color: #fff; border: 1px solid currentColor; border-radius: 999px;
+      padding: 4px 10px; font: 700 12px/1.2 inherit; letter-spacing: .08em; opacity: .5; cursor: pointer; transition: opacity .15s ease; }
+    .controls button:hover { opacity: .9; }
+    .controls button[aria-pressed="true"] { color: var(--accent); opacity: 1; }
+    .controls button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; opacity: 1; }
+    .controls .fs { margin-left: 4px; }
+    body:not(.tv) .controls.idle { opacity: 1; pointer-events: auto; }
+    body.tv .controls { position: fixed; bottom: 14px; right: 14px; z-index: 20; padding: 6px 8px; background: rgba(0, 0, 0, .6);
+      border-radius: 999px; transition: opacity .3s ease; }
+    body.tv .controls.idle { opacity: 0; pointer-events: none; }
 
     /* Screen mode (full screen, or any rotation): picture fills the display,
        rotated to match how the screen is physically mounted. */
     body.tv { overflow: hidden; background: #000; }
     body.tv.idle-cursor { cursor: none; }
     body.tv .wrap { max-width: none; padding: 0; }
-    body.tv header { display: none; }
+    body.tv header { min-height: 0; margin: 0; }
+    body.tv header > :not(.controls) { display: none; }
     body.tv .stage { position: fixed; top: 50%; left: 50%; width: 100vw; height: 100vh; aspect-ratio: auto;
       border-radius: 0; transform: translate(-50%, -50%) rotate(var(--rot)); margin: 0; }
     body.tv.sideways .stage { width: 100vh; height: 100vw; }
@@ -49,18 +56,18 @@
   </style>
 </head>
 <body>
-  <div class="controls idle" id="controls" role="toolbar" aria-label="Screen controls">
-    <span>Rotate</span>
-    <button data-rot="0" aria-pressed="true">0°</button>
-    <button data-rot="90" aria-pressed="false">90°</button>
-    <button data-rot="180" aria-pressed="false">180°</button>
-    <button data-rot="270" aria-pressed="false">270°</button>
-    <button class="fs" id="fsBtn">Full screen</button>
-  </div>
   <div class="wrap">
     <header>
       <img id="logo" alt="" class="hidden" />
       <div class="titles"><h1 id="title"></h1><p id="subtitle"></p></div>
+      <div class="controls idle" id="controls" role="toolbar" aria-label="Screen controls">
+        <span class="chip-label">ROTATE</span>
+        <button data-rot="0" aria-pressed="true">0°</button>
+        <button data-rot="90" aria-pressed="false">90°</button>
+        <button data-rot="180" aria-pressed="false">180°</button>
+        <button data-rot="270" aria-pressed="false">270°</button>
+        <button class="fs" id="fsBtn">FULL SCREEN</button>
+      </div>
       <span class="live" id="liveTag">OFFLINE</span>
     </header>
     <div class="stage">

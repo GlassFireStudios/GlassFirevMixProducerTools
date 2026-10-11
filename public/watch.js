@@ -23,7 +23,7 @@
     document.documentElement.style.setProperty('--rot', `${rot}deg`);
     if (tv) $('video').removeAttribute('controls'); else $('video').setAttribute('controls', '');
     document.querySelectorAll('[data-rot]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.rot) === rot)));
-    $('fsBtn').textContent = inFullscreen() ? 'Exit full screen' : 'Full screen';
+    $('fsBtn').textContent = inFullscreen() ? 'EXIT FULL SCREEN' : 'FULL SCREEN';
   }
 
   function setRotation(r) {
