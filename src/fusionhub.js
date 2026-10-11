@@ -117,7 +117,11 @@ export class FusionHub {
   async connect({ host, username, password }) {
     if (host) this.cfg.host = String(host).trim();
     const login = await req(this.base(), '/api/login', { method: 'POST', body: { username, password } });
-    if (login.json.stat !== 'ok') throw new Error(`FusionHub login failed (${login.json.message || login.json.code || 'unknown'})`);
+    if (login.json.stat !== 'ok') {
+      console.warn(`[fusionhub] connect: login step failed: ${JSON.stringify(login.json).slice(0, 200)}`);
+      throw new Error(`FusionHub login failed (${login.json.message || login.json.code || 'unknown'})`);
+    }
+    console.log(`[fusionhub] connect: login ok, cookies: ${login.setCookie.map((c) => c.split('=')[0]).join(',') || 'none'}`);
     const cookie = login.setCookie.map((c) => c.split(';')[0]).join('; ');
     const made = await req(this.base(), '/api/auth.client', {
       method: 'POST', cookie, body: { action: 'add', name: 'GlassFire Live Tools', scope: 'api.read-only' },
@@ -125,6 +129,8 @@ export class FusionHub {
     await req(this.base(), '/api/logout', { method: 'POST', cookie }).catch(() => {});
     const r = made.json.response || {};
     if (made.json.stat !== 'ok' || !r.clientId || !r.clientSecret) {
+      const safe = JSON.stringify(made.json).replace(/"clientSecret":"[^"]*"/g, '"clientSecret":"[redacted]"').slice(0, 300);
+      console.warn(`[fusionhub] connect: create-client step failed: ${safe}`);
       throw new Error(`Could not create the API client (${made.json.message || made.json.code || 'unknown'})`);
     }
     this.cfg.clientId = r.clientId;

@@ -138,6 +138,7 @@ function gateProducer(req, res, next) {
 app.get('/', (req, res) => sendPage(res, 'home.html'));
 app.get('/guests', (req, res) => sendPage(res, 'guests.html'));
 app.get('/network', (req, res) => sendPage(res, 'network.html'));
+app.get('/vmix', (req, res) => sendPage(res, 'vmix.html'));
 app.get('/join/:code', (req, res) => sendPage(res, 'join.html'));
 
 // ---- Outage checker (not sensitive; the dashboard host sits behind Access) ----

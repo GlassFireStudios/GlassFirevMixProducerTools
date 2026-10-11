@@ -20,7 +20,7 @@ import { slugify } from './store.js';
 import { fetchVmixApi, VmixError } from './vmix.js';
 
 const DATA_DIR = path.resolve('data');
-const POLL_MS = 2000;
+const POLL_MS = 1000; // 1s so audio meters on the vMix page feel live
 
 // Keep attribute values as strings: call passwords can have leading zeros.
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', parseAttributeValue: false });
@@ -44,7 +44,45 @@ export function parseVmixState(xml) {
     streaming: bool(textOf(v.streaming)),
     external: bool(textOf(v.external)),
     masterDb: [meterDb(master.meterF1), meterDb(master.meterF2)],
+    masterMuted: bool(master.muted),
     inputCount: inputs.length,
+    // Everything else the vMix API reports, for the vMix overview page.
+    active: Number(textOf(v.active)) || null,
+    preview: Number(textOf(v.preview)) || null,
+    fadeToBlack: bool(textOf(v.fadeToBlack)),
+    multiCorder: bool(textOf(v.multiCorder)),
+    playList: bool(textOf(v.playList)),
+    streamChannels: (() => {
+      const s = v.streaming;
+      if (!s || typeof s !== 'object') return [];
+      return Object.entries(s).filter(([k, val]) => /^channel\d+$/.test(k) && bool(val)).map(([k]) => Number(k.replace('channel', '')));
+    })(),
+    buses: Object.fromEntries(['busA', 'busB', 'busC', 'busD', 'busE', 'busF', 'busG']
+      .filter((b) => v.audio?.[b]).map((b) => [b.slice(3), {
+        db: [meterDb(v.audio[b].meterF1), meterDb(v.audio[b].meterF2)],
+        muted: bool(v.audio[b].muted),
+        toMaster: bool(v.audio[b].sendToMaster),
+      }])),
+    outputs: arr(v.outputs?.output).map((o) => ({
+      type: o.type ?? null,
+      number: Number(o.number) || null,
+      source: o.source ?? null,
+      input: o.inputNumber != null ? Number(o.inputNumber) : null,
+      ndi: bool(o.ndi),
+      srt: bool(o.srt),
+    })),
+    inputs: inputs.map((i) => ({
+      number: Number(i.number),
+      type: String(i.type ?? ''),
+      title: String(i.title ?? ''),
+      state: i.state ?? null,
+      durationMs: Number(i.duration) || 0,
+      positionMs: Number(i.position) || 0,
+      muted: i.muted != null ? bool(i.muted) : null,
+      hasAudio: i.meterF1 != null,
+      db: [meterDb(i.meterF1), meterDb(i.meterF2)],
+      buses: i.audiobusses ?? null,
+    })),
     calls: inputs.filter((i) => String(i.type).toLowerCase() === 'videocall').map((i) => ({
       key: String(i.key),
       number: Number(i.number),
