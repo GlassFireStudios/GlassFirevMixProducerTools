@@ -3,6 +3,21 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const slug = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ''));
+  // TV / signage options from the link itself.
+  const q = new URLSearchParams(location.search);
+  const rot = [90, 180, 270].includes(Number(q.get('rotate'))) ? Number(q.get('rotate')) : 0;
+  const tv = q.has('tv') || rot !== 0;
+  if (tv) {
+    document.body.classList.add('tv');
+    document.body.classList.toggle('sideways', rot === 90 || rot === 270);
+    document.body.classList.toggle('cover', q.get('fit') === 'cover');
+    document.documentElement.style.setProperty('--rot', `${rot}deg`);
+    $('video').removeAttribute('controls');
+    // Keep the screen awake (supported browsers only; harmless elsewhere).
+    const wake = () => navigator.wakeLock?.request('screen').catch(() => {});
+    wake();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+  }
   let show = null;
   let player = null;
   let retry = null;
@@ -47,7 +62,7 @@
     player.addEventListener(E.ERROR, () => { setLive(false); retry = setTimeout(tryPlay, 10000); });
     // Browsers only autoplay muted; offer one tap to unmute.
     player.setAutoplay(true);
-    player.setMuted(true);
+    player.setMuted(!(tv && q.get('sound') === '1'));
     $('unmute').addEventListener('click', () => { player.setMuted(false); $('unmute').classList.add('hidden'); });
     tryPlay();
   }

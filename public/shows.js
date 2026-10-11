@@ -23,9 +23,13 @@
         <button class="btn small secondary" data-copy="${esc(url)}">Copy link</button>
         <button class="btn small" data-edit="${esc(s.slug)}">Edit</button>
         <button class="btn small danger" data-del="${esc(s.slug)}">Delete</button></div>
-        <p class="mono small muted">${esc(url)}${s.playbackUrl ? '' : ' · <span class="sig-warn">no playback URL yet</span>'}</p></section>`;
+        <p class="mono small muted">${esc(url)}${s.playbackUrl ? '' : ' · <span class="sig-warn">no playback URL yet</span>'}</p>
+        <p class="small">TV links:
+          ${[['tv', 'full screen'], ['rotate=90', 'rotated 90°'], ['rotate=270', 'rotated 270°'], ['rotate=180', 'upside down']]
+    .map(([qs, label]) => `<button class="btn small secondary" data-copy="${esc(url)}?${qs}">${label}</button>`).join(' ')}
+          <span class="muted"> · add &amp;fit=cover to fill edge to edge, &amp;sound=1 to try starting with sound</span></p></section>`;
     }).join('') : '<p class="muted">No shows yet.</p>';
-    $('list').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => { navigator.clipboard?.writeText(b.dataset.copy); b.textContent = 'copied'; setTimeout(() => (b.textContent = 'Copy link'), 1200); }));
+    $('list').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => { const label = b.textContent; navigator.clipboard?.writeText(b.dataset.copy); b.textContent = 'copied'; setTimeout(() => (b.textContent = label), 1200); }));
     $('list').querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => open(shows.find((s) => s.slug === b.dataset.edit))));
     $('list').querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
       if (!confirm('Delete this show page? The link stops working.')) return;
