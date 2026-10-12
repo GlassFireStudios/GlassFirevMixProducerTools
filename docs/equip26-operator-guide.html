@@ -1,0 +1,351 @@
+<title>Equip 2026 Operator Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+  /* GlassFire design system (black-first, Poppins, Fire + Glass). One deliberate dark look.
+     Layout: a field binder. One narrow column, tabbed sections, the Stream Deck drawn to scale. */
+  :root {
+    --bg: #000000; --paper: #1A1A1F; --ink: #FFFFFF; --muted: #B8B8BE; --line: #2A2A30; --chip: #0A0A0C;
+    --fire: #EE2750; --glass: #00A8E4; --spark: linear-gradient(110deg, #00A8E4 0%, #3C5BA9 35%, #E50981 65%, #EE2750 100%);
+    --navy: #EE2750; --lime: #EE2750; --red: #EE2750; --green: #2FBF71; --amber: #F2B33D;
+    --display: "Poppins", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --body: "Poppins", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  a { color: var(--glass); }
+  table { color: var(--ink); }
+  body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); padding-inline: 16px; padding-block: 0 48px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  header.top { padding-block: 28px 18px; border-bottom: 3px solid; border-image: var(--spark) 1; display: grid; gap: 6px; }
+  .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--fire); }
+  h1 { font: 800 clamp(34px, 7vw, 56px)/.95 var(--display); margin: 0; letter-spacing: -.02em; text-transform: uppercase; text-wrap: balance; }
+  h1 b { background: var(--spark); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+  h2 { font: 800 28px/1.05 var(--display); margin: 38px 0 10px; text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; }
+  h3 { font: 600 19px/1.25 var(--body); margin: 22px 0 6px; }
+  p { margin: 8px 0; max-width: 68ch; }
+  .lede { font-size: 18px; color: var(--muted); max-width: 62ch; }
+  nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; gap: 6px; overflow-x: auto; padding-block: 10px; border-bottom: 1px solid var(--line); }
+  nav.tabs a { flex: 0 0 auto; font: 600 14px/1 var(--body); color: var(--ink); text-decoration: none; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+  nav.tabs a:focus-visible, button:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+  .mono { font-family: var(--mono); font-size: .88em; }
+  .key { font: 600 13px/1 var(--mono); padding: 3px 7px; border-radius: 5px; background: var(--chip); border: 1px solid var(--line); white-space: nowrap; }
+  .tablewrap { overflow-x: auto; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; background: var(--paper); }
+  th, td { text-align: left; vertical-align: top; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+  th { font: 600 12px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  td.t { font-family: var(--mono); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  ol.steps { padding-left: 0; list-style: none; counter-reset: s; display: grid; gap: 8px; margin: 10px 0; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  ol.steps li::before { content: counter(s); font: 700 20px/1.2 var(--display); color: var(--navy); }
+  .rule { border-left: 4px solid var(--fire); background: var(--paper); padding: 10px 14px; margin: 12px 0; }
+  .rule b { color: var(--red); }
+
+  /* Stream Deck XL, 8 x 4, drawn to scale */
+  .deck { background: #0c0d0e; border-radius: 16px; padding: 12px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 7px; max-width: 640px; }
+  .btn { aspect-ratio: 1; border-radius: 7px; display: grid; place-items: center; text-align: center; color: #fff; font: 700 clamp(7px, 1.45vw, 11px)/1.1 var(--body); padding: 3px; overflow: hidden; word-break: break-word; }
+  .b-loop { background: #002445; } .b-live { background: #8c0000; } .b-extra { background: #3c1e5a; } .b-bug { background: #3c3c3c; }
+  .b-cd { background: #787d00; } .b-auto { background: #005a28; } .b-off { background: #1e1e1e; } .b-nav { background: #24282c; color: #9aa5ae; } .b-empty { background: #141516; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 4px; font-size: 14px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .tally { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  .tally div { display: flex; align-items: center; gap: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 15px; }
+  .tally i { width: 18px; height: 18px; border-radius: 4px; display: inline-block; }
+
+  .map { display: grid; grid-template-columns: 1fr; gap: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .map > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); }
+  .map > div:first-child { border-top: 0; background: var(--chip); font: 600 12px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .map b { font-weight: 600; }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .flow .n { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+  .flow .n b { display: block; font: 700 16px/1.1 var(--display); }
+  .flow .a { color: var(--muted); font-weight: 700; }
+  section { scroll-margin-top: 60px; }
+  .nowcard { margin-top: 18px; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 0 0 1px rgba(0,168,228,.35), 0 12px 40px rgba(0,168,228,.20); color: #fff; border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+  .nowcard .eyebrow { color: #c9d3dc; }
+  .nowhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .nowhead .mono { font-size: 18px; color: #fff; font-variant-numeric: tabular-nums; }
+  .nowday { font: 800 26px/1.1 var(--display); text-transform: uppercase; letter-spacing: -.01em; }
+  .nowblock { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .nowlabel { font-size: 14px; color: #c9d3dc; }
+  .key.big { font: 800 22px/1 var(--display); padding: 7px 14px; background: var(--fire); color: #fff; border: 0; border-radius: 999px; }
+  .nowmeta { font-size: 14px; color: #dfe6ec; }
+  .b-now { background: #000; color: #c3cc00; font-size: clamp(6px, 1.2vw, 9px); }
+  footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">GlassFire · Louisville · Oct 21–23, 2026</span>
+    <h1>Equip 2026 <b>Operator Guide</b></h1>
+    <p class="lede">Two small computers (NUCs) run vMix. One makes the horizontal picture, one makes the vertical picture. Both send their picture to the internet, and every screen in the venue plays it from a web link. Your job is to keep the right thing on each one.</p>
+  </header>
+
+  <section id="now" aria-live="polite">
+    <div class="nowcard">
+      <div class="nowhead"><span class="eyebrow">Right now in Louisville</span><span class="mono" id="nowClock">--:--</span></div>
+      <div class="nowday" id="nowDay">…</div>
+      <div class="nowblock"><span class="nowlabel">Loop block</span><span class="key big" id="nowBlock">…</span></div>
+      <div class="nowmeta" id="nowMeta"></div>
+    </div>
+  </section>
+
+  <nav class="tabs" aria-label="Sections">
+    <a href="#which">Which block?</a><a href="#setup">The setup</a><a href="#obs">vMix for OBS users</a><a href="#deck">Stream Deck</a><a href="#day">Show day</a><a href="#live">Going live</a><a href="#schedule">Schedule</a><a href="#fix">If it breaks</a><a href="#drills">Practice</a><a href="#help">Get help</a>
+  </nav>
+
+  <section id="which">
+    <h2>Which block is it?</h2>
+    <p>The show runs on 9 loop blocks. Each one belongs to a day and a time window. There are three ways to know which one should be on screen, and they always agree:</p>
+    <ol class="steps">
+      <li><span><b>The NOW button on the Stream Deck</b> (yellow text) shows the date and block, for example <span class="key">THU OCT 22 | NOW 5 THU C</span>. Press the block button with the same name.</span></li>
+      <li><span><b>The card at the top of this guide</b> works it out from Louisville time.</span></li>
+      <li><span><b>By hand:</b> the block name starts with its number and day. Find today's day, then the time window.</span></li>
+    </ol>
+    <div class="tablewrap"><table>
+      <thead><tr><th>If today is…</th><th>and the time is…</th><th>the block is</th></tr></thead>
+      <tbody>
+        <tr><td>Tuesday Oct 20 (setup)</td><td class="t">any time</td><td><b>1 WED A</b></td></tr>
+        <tr><td rowspan="2">Wednesday Oct 21 · day 1</td><td class="t">before 12:00</td><td><b>1 WED A</b></td></tr>
+        <tr><td class="t">12:00 or later</td><td><b>2 WED B</b></td></tr>
+        <tr><td rowspan="5">Thursday Oct 22 · day 2</td><td class="t">before 09:30</td><td><b>3 THU A</b></td></tr>
+        <tr><td class="t">09:30–12:29</td><td><b>4 THU B</b></td></tr>
+        <tr><td class="t">12:30–14:59</td><td><b>5 THU C</b></td></tr>
+        <tr><td class="t">15:00–17:59</td><td><b>6 THU D</b></td></tr>
+        <tr><td class="t">18:00 or later</td><td><b>7 THU E</b></td></tr>
+        <tr><td rowspan="2">Friday Oct 23 · day 3</td><td class="t">before 12:15</td><td><b>8 FRI A</b></td></tr>
+        <tr><td class="t">12:15 or later</td><td><b>9 FRI B</b></td></tr>
+      </tbody>
+    </table></div>
+    <p>Going live uses the same block: on the vertical machine press <b>LIVE</b> plus the current block (Thursday at 2pm is <b>LIVE 5 THU C</b>). If the NOW button and the Windows clock disagree with your watch, post in Slack. The clock is what everything runs on.</p>
+    <p><b>Running early or late:</b> GlassFire moves sessions on the live schedule (down to the second). Within about a minute the countdown, the auto switch and the NOW button all follow, so the table above is the plan and the NOW button is the truth. If you hear a session is moving, post it in Slack.</p>
+  </section>
+
+  <section id="setup">
+    <h2>The setup</h2>
+    <div class="flow" aria-label="Signal flow">
+      <div class="n"><b>Camera</b>SDI into the horizontal NUC</div><span class="a">→</span>
+      <div class="n"><b>Horizontal NUC</b>vMix · loops + camera</div><span class="a">→</span>
+      <div class="n"><b>Vertical NUC</b>gets the camera over NDI</div><span class="a">→</span>
+      <div class="n"><b>Internet</b>each NUC streams its picture</div><span class="a">→</span>
+      <div class="n"><b>Venue screens</b>play live.glassfire.co</div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Machine</th><th>What it shows</th><th>Screens open this link</th></tr></thead>
+      <tbody>
+        <tr><td><b>Horizontal</b></td><td>9 graphics loops (one per time block), the live camera with a logo bug, keynote and Morning Show extras</td><td class="mono">live.glassfire.co/equipexpo</td></tr>
+        <tr><td><b>Vertical</b></td><td>9 vertical loops, plus 9 "live" loops with the camera in a box at the top</td><td class="mono">live.glassfire.co/equipexpo-vertical</td></tr>
+      </tbody>
+    </table></div>
+    <p>Most of the day, nothing needs you. The loops play on repeat, the <b>auto switch</b> changes to the next loop at each block time, and the <b>countdown bar</b> appears by itself in the hour before each event. You step in to go live, to fix anything that looks wrong, and to check in on Slack.</p>
+  </section>
+
+  <section id="obs">
+    <h2>vMix for OBS users</h2>
+    <p>You already know the ideas. vMix just names them differently.</p>
+    <div class="map" role="table">
+      <div role="row"><span>In OBS</span><span>In vMix</span></div>
+      <div role="row"><span>A <b>scene</b></span><span>An <b>input</b>. Every box along the bottom of vMix is one. Each loop, the camera, the countdown: all inputs.</span></div>
+      <div role="row"><span><b>Studio Mode</b> (Preview / Program)</span><span>Always on. Left big picture is <b>Preview</b>, right big picture is <b>Output</b> (what the screens see).</span></div>
+      <div role="row"><span>Click a scene, then <b>Transition</b></span><span>Click an input (it goes to Preview), then click <b>Fade</b> in the middle. Or press its Stream Deck button: one press fades it straight to Output.</span></div>
+      <div role="row"><span>Sources stacked inside a scene</span><span><b>Layers</b> on an input. The vertical "live" loops have the camera as a layer in the top box. The camera has the logo bug as a layer.</span></div>
+      <div role="row"><span>A source you toggle with the eye icon</span><span>An <b>Overlay</b> channel (buttons 1–4 above the inputs). The countdown sits on Overlay 1 all day.</span></div>
+      <div role="row"><span>Browser Source</span><span>A <b>Web Browser</b> input. The countdown is one.</span></div>
+      <div role="row"><span>Media Source set to loop</span><span>A <b>Video</b> input with <b>Loop</b> on. The 9 block loops.</span></div>
+      <div role="row"><span>Start Streaming</span><span>The <b>Stream</b> button at the bottom. Red means streaming. It should be red all day.</span></div>
+      <div role="row"><span>Scene Collection</span><span>A <b>preset</b> file: <span class="mono">C:\Equip\vMix\EQUIP26 Horizontal.vmix</span> or <span class="mono">…Vertical.vmix</span>.</span></div>
+      <div role="row"><span>Stream Deck plugin</span><span><b>Companion</b>. It drives the Stream Deck and shows tally colors from vMix.</span></div>
+    </div>
+    <div class="rule"><b>Hands off:</b> don't open vMix Settings, don't delete or rename inputs, and don't close vMix during the show. Input names are how the auto switch and the Stream Deck find things.</div>
+  </section>
+
+  <section id="deck">
+    <h2>The Stream Deck</h2>
+    <p>One press puts that thing on the screens with a 1-second fade. Tally tells you where everything is:</p>
+    <div class="tally"><div><i style="background:#c80000"></i><b>Red</b>&nbsp;on the screens now</div><div><i style="background:#00a000"></i><b>Green</b>&nbsp;in Preview (next up)</div><div><i style="background:#002445"></i><b>Normal color</b>&nbsp;not in use</div></div>
+
+    <h3>Horizontal machine</h3>
+    <div class="deck" role="img" aria-label="Horizontal Stream Deck layout">
+      <div class="btn b-nav">PAGE UP</div><div class="btn b-loop">1 WED A</div><div class="btn b-loop">2 WED B</div><div class="btn b-loop">3 THU A</div><div class="btn b-loop">4 THU B</div><div class="btn b-loop">5 THU C</div><div class="btn b-loop">6 THU D</div><div class="btn b-loop">7 THU E</div>
+      <div class="btn b-nav">PAGE</div><div class="btn b-loop">8 FRI A</div><div class="btn b-loop">9 FRI B</div><div class="btn b-live">LIVE CAMERA</div><div class="btn b-extra">KEYNOTE BG</div><div class="btn b-extra">MORNING LOOP</div><div class="btn b-extra">MORNING STARTING SOON</div><div class="btn b-extra">MORNING SUNRISE</div>
+      <div class="btn b-nav">PAGE DOWN</div><div class="btn b-bug">BUG GENERIC</div><div class="btn b-bug">BUG KEYNOTE</div><div class="btn b-bug">BUG MORNING</div><div class="btn b-bug">BUG ENERGIZE</div><div class="btn b-bug">BUG TREE CARE</div><div class="btn b-off">BUG OFF</div><div class="btn b-now">THU OCT 22 | NOW 5 THU C</div>
+      <div class="btn b-empty"></div><div class="btn b-cd">COUNT-DOWN ON</div><div class="btn b-off">COUNT-DOWN OFF</div><div class="btn b-off">COUNT-DOWN RELOAD</div><div class="btn b-auto">AUTO SWITCH ON</div><div class="btn b-off">AUTO SWITCH OFF</div><div class="btn b-empty"></div><div class="btn b-empty"></div>
+    </div>
+
+    <h3>Vertical machine</h3>
+    <div class="deck" role="img" aria-label="Vertical Stream Deck layout">
+      <div class="btn b-nav">PAGE UP</div><div class="btn b-loop">1 WED A</div><div class="btn b-loop">2 WED B</div><div class="btn b-loop">3 THU A</div><div class="btn b-loop">4 THU B</div><div class="btn b-loop">5 THU C</div><div class="btn b-loop">6 THU D</div><div class="btn b-loop">7 THU E</div>
+      <div class="btn b-nav">PAGE</div><div class="btn b-loop">8 FRI A</div><div class="btn b-loop">9 FRI B</div><div class="btn b-live">LIVE 1 WED A</div><div class="btn b-live">LIVE 2 WED B</div><div class="btn b-live">LIVE 3 THU A</div><div class="btn b-live">LIVE 4 THU B</div><div class="btn b-live">LIVE 5 THU C</div>
+      <div class="btn b-nav">PAGE DOWN</div><div class="btn b-live">LIVE 6 THU D</div><div class="btn b-live">LIVE 7 THU E</div><div class="btn b-live">LIVE 8 FRI A</div><div class="btn b-live">LIVE 9 FRI B</div><div class="btn b-now">THU OCT 22 | NOW 5 THU C</div><div class="btn b-empty"></div><div class="btn b-empty"></div>
+      <div class="btn b-empty"></div><div class="btn b-cd">COUNT-DOWN ON</div><div class="btn b-off">COUNT-DOWN OFF</div><div class="btn b-off">COUNT-DOWN RELOAD</div><div class="btn b-auto">AUTO SWITCH ON</div><div class="btn b-off">AUTO SWITCH OFF</div><div class="btn b-bug">BUG ON</div><div class="btn b-off">BUG OFF</div>
+    </div>
+    <div class="legend">
+      <span style="--c:#002445">Block loops</span><span style="--c:#8c0000">Live</span><span style="--c:#3c1e5a">Session extras</span><span style="--c:#3c3c3c">Logo bugs</span><span style="--c:#787d00">Countdown</span><span style="--c:#005a28">Auto switch</span>
+    </div>
+  </section>
+
+  <section id="day">
+    <h2>Show day</h2>
+    <h3>Start of day (both machines)</h3>
+    <ol class="steps">
+      <li><span>Power on. vMix opens with the Equip preset. If it doesn't, open vMix and use <b>Open</b> (top left) → <span class="mono">C:\Equip\vMix\EQUIP26 Horizontal.vmix</span> (or Vertical).</span></li>
+      <li><span>Check the Windows clock in the corner matches Eastern time to the minute. The auto switch and countdown both run from it.</span></li>
+      <li><span>Press the loop for the current block: the one the NOW button names (see <a href="#which">Which block is it?</a>). It goes red.</span></li>
+      <li><span>Click <b>Stream</b> at the bottom of vMix. It turns red. Open the screen link on your phone and confirm the picture is there (about 3 seconds behind).</span></li>
+      <li><span>Press <b>AUTO SWITCH ON</b>. Press <b>COUNTDOWN ON</b>. The countdown is invisible until an hour before the next event; that's normal.</span></li>
+      <li><span>Post "Horizontal up" / "Vertical up" in <b>#field-support</b>.</span></li>
+    </ol>
+    <h3>During the day</h3>
+    <ol class="steps">
+      <li><span>At each block time, glance at Output: the loop should change by itself within a few seconds. If it didn't, press the right block button.</span></li>
+      <li><span>Keep the Stream button red. If it ever goes grey, click it again and tell Slack.</span></li>
+    </ol>
+    <h3>End of day</h3>
+    <ol class="steps">
+      <li><span>Leave everything running unless GlassFire tells you otherwise. The screens show the loops overnight when the venue runs them.</span></li>
+      <li><span>Post "End of day, all good" (or what went wrong) in Slack.</span></li>
+    </ol>
+  </section>
+
+  <section id="live">
+    <h2>Going live</h2>
+    <p>Live sessions (keynote, Morning Show, ENERGIZE, Tree Care Arena) go on both machines.</p>
+    <h3>Horizontal</h3>
+    <ol class="steps">
+      <li><span>A couple of minutes before: press the right <b>BUG</b> button for the session (Keynote, Morning, Energize, Tree Care, or Generic).</span></li>
+      <li><span>Press <b>AUTO SWITCH OFF</b> so nothing changes under you.</span></li>
+      <li><span>When the session starts: press <b>LIVE CAMERA</b>.</span></li>
+      <li><span>When it ends: press the loop for the current block, then <b>AUTO SWITCH ON</b>.</span></li>
+    </ol>
+    <h3>Vertical</h3>
+    <ol class="steps">
+      <li><span>Press <b>AUTO SWITCH OFF</b>.</span></li>
+      <li><span>When the session starts: press <b>LIVE</b> for the <i>current block</i> (for example Thursday at 2pm is <b>LIVE 5 THU C</b>). The camera fills the top box and the graphics keep running underneath.</span></li>
+      <li><span>When it ends: press the normal loop for the current block, then <b>AUTO SWITCH ON</b>.</span></li>
+    </ol>
+    <p>The auto switch never cuts away from the camera on its own. It only changes things when a normal loop is on screen.</p>
+  </section>
+
+  <section id="schedule">
+    <h2>Schedule</h2>
+    <h3>Loop blocks (auto switch follows this)</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Block</th><th>Day</th><th>Runs</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 WED A</b></td><td>Tue + Wed</td><td class="t">all Tuesday · Wed open–12:00</td></tr>
+        <tr><td><b>2 WED B</b></td><td>Wed</td><td class="t">12:00–close</td></tr>
+        <tr><td><b>3 THU A</b></td><td>Thu</td><td class="t">open–09:30</td></tr>
+        <tr><td><b>4 THU B</b></td><td>Thu</td><td class="t">09:30–12:30</td></tr>
+        <tr><td><b>5 THU C</b></td><td>Thu</td><td class="t">12:30–15:00</td></tr>
+        <tr><td><b>6 THU D</b></td><td>Thu</td><td class="t">15:00–18:00</td></tr>
+        <tr><td><b>7 THU E</b></td><td>Thu</td><td class="t">18:00–close</td></tr>
+        <tr><td><b>8 FRI A</b></td><td>Fri</td><td class="t">open–12:15</td></tr>
+        <tr><td><b>9 FRI B</b></td><td>Fri</td><td class="t">12:15–close</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Countdown bar (appears 60 min before, gone 10 min after)</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Start</th><th>Event</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td class="t">Wed 11:00</td><td>Opening Keynote: Mike Holmes</td><td>Room B103</td></tr>
+        <tr><td class="t">Wed 12:00</td><td>Outdoor Demo Yard Opens</td><td>Outdoor Demo Yard</td></tr>
+        <tr><td class="t">Wed 19:30</td><td>Wednesday Night Block Party</td><td>4th Street Live!</td></tr>
+        <tr><td class="t">Thu 08:00</td><td>The Morning Show</td><td>Room B103</td></tr>
+        <tr><td class="t">Thu 09:00</td><td>Outdoor Demo Yard Opens</td><td>Outdoor Demo Yard</td></tr>
+        <tr><td class="t">Thu 11:00</td><td>Mutt Madness</td><td>TurfMutt Park, South Wing Lobby A</td></tr>
+        <tr><td class="t">Thu 14:00</td><td>ENERGIZE</td><td>Room B103</td></tr>
+        <tr><td class="t">Thu 16:00</td><td>Women's Leadership Keynote</td><td>Room B103</td></tr>
+        <tr><td class="t">Thu 17:00</td><td>Women's Leadership Reception</td><td>Room B101</td></tr>
+        <tr><td class="t">Thu 18:30</td><td>Paristown Block Party</td><td>Old Forester's Paristown Hall</td></tr>
+        <tr><td class="t">Fri 09:00</td><td>Outdoor Demo Yard Opens</td><td>Outdoor Demo Yard</td></tr>
+      </tbody>
+    </table></div>
+    <p>Time changes come from GlassFire. Don't edit the files yourself; ask in Slack and the update is pushed to the machines.</p>
+  </section>
+
+  <section id="fix">
+    <h2>If it breaks</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>You see</th><th>Do this</th></tr></thead>
+      <tbody>
+        <tr><td>Screens say "The stream will begin shortly"</td><td>vMix isn't streaming. Click <b>Stream</b> so it's red. Wait 15 seconds. Still not back: Slack.</td></tr>
+        <tr><td>Loop didn't change at a block time</td><td>Press the right block button, then <b>AUTO SWITCH ON</b>.</td></tr>
+        <tr><td>No countdown before an event</td><td>Press <b>COUNTDOWN ON</b>, then <b>COUNTDOWN RELOAD</b>. Check the Windows clock is Eastern.</td></tr>
+        <tr><td>Countdown stuck on the wrong time</td><td><b>COUNTDOWN RELOAD</b>.</td></tr>
+        <tr><td>Camera is black on horizontal</td><td>Check the camera is on and its cable is in. In vMix the camera input should show a picture.</td></tr>
+        <tr><td>Camera is black on vertical only</td><td>The camera comes from the horizontal NUC over the network. Check the network cable between them, then Slack.</td></tr>
+        <tr><td>Stream Deck buttons don't light up</td><td>Companion lost vMix. Check vMix is open. Unplug and replug the Stream Deck.</td></tr>
+        <tr><td>vMix froze or closed</td><td>Reopen vMix → Open → <span class="mono">C:\Equip\vMix\EQUIP26 …vmix</span> → press the current block → <b>Stream</b> → auto switch on. Tell Slack.</td></tr>
+        <tr><td>Anything else</td><td>Put the current block loop on, then Slack with a phone photo of the vMix screen.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="drills">
+    <h2>Practice</h2>
+    <p>Run these on the machines before the show. Each one should take under a minute.</p>
+    <ol class="steps">
+      <li><span>Put <b>4 THU B</b> on screen. Then <b>7 THU E</b>. Watch the tally move from green to red.</span></li>
+      <li><span>Go live on horizontal with the Keynote bug, then come back to the loop and turn auto switch back on.</span></li>
+      <li><span>On vertical, go to <b>LIVE 5 THU C</b> and back to <b>5 THU C</b>.</span></li>
+      <li><span>Turn the countdown off and on. Reload it.</span></li>
+      <li><span>Stop and start the stream, and watch the screen link go offline and come back.</span></li>
+      <li><span>Close vMix and bring the show back from the preset, start to streaming, in under 2 minutes.</span></li>
+    </ol>
+  </section>
+
+  <section id="help">
+    <h2>Get help</h2>
+    <p>Double-click <b>GlassFire Support</b> on the desktop of either computer. Pick <b>Something's wrong</b>, <b>Ask a question</b>, or <b>Send new media</b> (for a new video or graphic from the client), and send. It tells GlassFire which machine you're on and what vMix is doing, and our reply shows up right there.</p>
+    <p><b>Slack #field-support</b> works too, from your phone. Include which machine (horizontal or vertical) and a photo of the vMix screen if you can.</p>
+    <p>Show files update themselves: when GlassFire changes a time or a graphic, the computers pick it up within a couple of minutes. Don't copy or edit files in <span class="mono">C:\Equip</span> yourself.</p>
+    <p>If something is wrong on the screens right now, put the current block loop on first, then post.</p>
+  </section>
+
+  <footer>GlassFire Live · Equip Exposition 2026 · operator copy</footer>
+</div>
+<script>
+  // Same rules as the vMix auto switch, worked out in Louisville (Eastern) time.
+  (function () {
+    var BLOCKS = [
+      ['2026-10-21', 12 * 60, '2 WED B'], ['2026-10-22', 0, '3 THU A'], ['2026-10-22', 9 * 60 + 30, '4 THU B'],
+      ['2026-10-22', 12 * 60 + 30, '5 THU C'], ['2026-10-22', 15 * 60, '6 THU D'], ['2026-10-22', 18 * 60, '7 THU E'],
+      ['2026-10-23', 0, '8 FRI A'], ['2026-10-23', 12 * 60 + 15, '9 FRI B']
+    ];
+    var EVENTS = [
+      ['2026-10-21', 11 * 60, 'Opening Keynote: Mike Holmes'], ['2026-10-21', 12 * 60, 'Outdoor Demo Yard Opens'], ['2026-10-21', 19 * 60 + 30, 'Wednesday Night Block Party'],
+      ['2026-10-22', 8 * 60, 'The Morning Show'], ['2026-10-22', 9 * 60, 'Outdoor Demo Yard Opens'], ['2026-10-22', 11 * 60, 'Mutt Madness'],
+      ['2026-10-22', 14 * 60, 'ENERGIZE'], ['2026-10-22', 16 * 60, "Women's Leadership Keynote"], ['2026-10-22', 17 * 60, "Women's Leadership Reception"],
+      ['2026-10-22', 18 * 60 + 30, 'Paristown Block Party'], ['2026-10-23', 9 * 60, 'Outdoor Demo Yard Opens']
+    ];
+    var DAYS = { '2026-10-20': 'Tuesday Oct 20 · setup day', '2026-10-21': 'Wednesday Oct 21 · show day 1 of 3', '2026-10-22': 'Thursday Oct 22 · show day 2 of 3', '2026-10-23': 'Friday Oct 23 · show day 3 of 3' };
+    function eastern() {
+      var p = {};
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', weekday: 'long' })
+        .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      return { date: p.year + '-' + p.month + '-' + p.day, mins: Number(p.hour) * 60 + Number(p.minute), clock: p.hour + ':' + p.minute, weekday: p.weekday };
+    }
+    var key = function (d, m) { return d + ' ' + String(1e4 + m).slice(1); };
+    var hhmm = function (m) { return String(100 + Math.floor(m / 60)).slice(1) + ':' + String(100 + m % 60).slice(1); };
+    var dayShort = { '2026-10-21': 'Wed', '2026-10-22': 'Thu', '2026-10-23': 'Fri' };
+    function update() {
+      var t = eastern(), now = key(t.date, t.mins), block = '1 WED A', next = null;
+      BLOCKS.forEach(function (b) { if (key(b[0], b[1]) <= now) block = b[2]; else if (!next) next = b; });
+      var ev = null;
+      EVENTS.forEach(function (e) { if (!ev && key(e[0], e[1]) > now) ev = e; });
+      document.getElementById('nowClock').textContent = t.clock + ' ET';
+      document.getElementById('nowDay').textContent = DAYS[t.date] || (t.date < '2026-10-20' ? t.weekday + ' · before the show' : t.weekday + ' · after the show');
+      document.getElementById('nowBlock').textContent = block;
+      var meta = [];
+      if (next) meta.push('Next: ' + next[2] + ' at ' + dayShort[next[0]] + ' ' + hhmm(next[1]));
+      if (ev) meta.push('Next countdown: ' + ev[2] + ', ' + dayShort[ev[0]] + ' ' + hhmm(ev[1]));
+      document.getElementById('nowMeta').textContent = meta.join(' · ') || 'Show is over.';
+    }
+    update();
+    setInterval(update, 30000);
+  })();
+</script>

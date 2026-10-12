@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Schedule · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+  <style>
+    /* Schedule: one timeline per show day. Actual time is the hero of each row. */
+    .sch-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: var(--sp-3, 12px) 0; display: flex; flex-wrap: wrap; gap: var(--sp-3, 12px); align-items: center; }
+    .sch-now { display: flex; gap: var(--sp-4, 16px); align-items: baseline; flex-wrap: wrap; }
+    .sch-clock { font: 800 var(--t-2xl, 28px)/1 var(--font-sans, Poppins, sans-serif); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+    .sch-sync { display: flex; gap: var(--sp-2, 8px); flex-wrap: wrap; margin-left: auto; }
+    .switch { display: inline-flex; align-items: center; gap: var(--sp-2, 8px); cursor: pointer; user-select: none; font-size: var(--t-sm, 14px); }
+    .switch input { appearance: none; width: 38px; height: 22px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); position: relative; cursor: pointer; transition: background var(--dur-2, 220ms); }
+    .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform var(--dur-2, 220ms) var(--ease-out, ease); }
+    .switch input:checked { background: var(--gf-fire, #EE2750); border-color: var(--gf-fire, #EE2750); }
+    .switch input:checked::after { transform: translateX(16px); background: #fff; }
+    .switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .sch-day { margin-top: var(--sp-6, 32px); }
+    .sch-day > h2 { font: 800 var(--t-xl, 22px)/1 var(--font-sans, Poppins, sans-serif); text-transform: uppercase; letter-spacing: -.01em; margin: 0 0 var(--sp-3, 12px); }
+    .sch-day > h2 span { color: var(--muted); font-weight: 600; font-size: var(--t-sm, 14px); letter-spacing: .14em; margin-left: var(--sp-2, 8px); }
+    .sch-row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: var(--sp-4, 16px); align-items: center; padding: var(--sp-3, 12px) var(--sp-4, 16px); border: 1px solid var(--line); border-radius: var(--r-md, 8px); background: var(--panel); margin-bottom: var(--sp-2, 8px); }
+    .sch-row.is-past { opacity: .5; }
+    .sch-row.is-now { border-color: var(--gf-glass, #00A8E4); box-shadow: var(--shadow-glass); }
+    .sch-row.is-next { border-color: color-mix(in srgb, var(--gf-fire, #EE2750) 60%, var(--line)); }
+    .sch-row.is-off { opacity: .4; }
+    .sch-time { font: 800 var(--t-xl, 22px)/1 var(--font-sans, Poppins, sans-serif); font-variant-numeric: tabular-nums; }
+    .sch-time small { display: block; font: 500 var(--t-xs, 12px)/1.4 var(--font-sans, Poppins, sans-serif); color: var(--muted); margin-top: 4px; }
+    .sch-what { min-width: 0; }
+    .sch-what b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+    .sch-what .meta { color: var(--muted); font-size: var(--t-sm, 14px); }
+    .tag { display: inline-block; font: 600 var(--t-2xs, 11px)/1 var(--font-sans, Poppins, sans-serif); letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px; border-radius: var(--r-pill, 999px); border: 1px solid var(--line); color: var(--muted); margin-right: 6px; vertical-align: 2px; }
+    .tag.event { color: var(--gf-fire, #EE2750); border-color: color-mix(in srgb, var(--gf-fire, #EE2750) 50%, var(--line)); }
+    .tag.block { color: var(--gf-glass, #00A8E4); border-color: color-mix(in srgb, var(--gf-glass, #00A8E4) 50%, var(--line)); }
+    .tag.late { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
+    .tag.early { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); }
+    .tag.now { color: #000; background: var(--gf-glass, #00A8E4); border-color: transparent; }
+    .sch-ctl { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center; }
+    .sch-ctl button { min-width: 3.2rem; font-variant-numeric: tabular-nums; }
+    .sch-ctl input { width: 6.5rem; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-sm, 4px); padding: 6px 8px; font: inherit; font-size: var(--t-sm, 14px); }
+    .sch-err { color: var(--danger); font-size: var(--t-sm, 14px); min-height: 1.2em; }
+    @media (max-width: 860px) { .sch-row { grid-template-columns: 6rem minmax(0, 1fr); } .sch-ctl { grid-column: 1 / -1; justify-content: flex-start; } }
+  </style>
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+  </header>
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Schedule</h1>
+      <select id="kit" aria-label="Show"></select>
+      <div class="spacer"></div>
+      <button class="btn secondary small" id="addBlock">+ Loop block</button>
+      <button class="btn small" id="addEvent">+ Countdown event</button>
+    </div>
+    <div class="signin hidden" id="signin"><p>Sign in to edit the schedule.</p><a class="btn" href="/admin?next=/schedule">Sign in</a></div>
+
+    <div class="sch-bar">
+      <div class="sch-now"><span class="gf-eyebrow">Venue time</span><span class="sch-clock" id="clock">--:--:--</span><span class="muted small" id="nowText"></span></div>
+      <label class="switch" title="Off: only the row you shift moves. On: that row and everything after it the same day move together. Never the next day."><input type="checkbox" id="following" /> Also move everything after it today</label>
+      <div class="sch-sync" id="sync"></div>
+    </div>
+    <p class="sch-err" id="err" role="alert"></p>
+    <div id="days"><p class="muted">Loading…</p></div>
+    <p class="muted small">Shift with the buttons, or type any amount: <span class="mono">3</span> (minutes), <span class="mono">2:30</span>, <span class="mono">30s</span>, <span class="mono">-1</span> for earlier. Show computers pick changes up within about a minute; the countdown re-reads every 20 seconds and the auto switch every 5. Every change posts to #field-support.</p>
+  </main>
+
+  <div class="modal-back hidden" id="modal">
+    <div class="modal">
+      <h3 id="mTitle">Edit</h3>
+      <input type="hidden" id="fId" /><input type="hidden" id="fKind" />
+      <label class="field" id="wName"><span>Loop name (must match the vMix input, e.g. 4 THU B)</span><input id="fName" maxlength="60" /></label>
+      <label class="field" id="wTitle"><span>Title on the countdown</span><input id="fTitle" maxlength="80" /></label>
+      <label class="field" id="wWhere"><span>Where</span><input id="fWhere" maxlength="80" /></label>
+      <div class="row">
+        <label class="field"><span>Planned time (venue)</span><input id="fStart" type="datetime-local" /></label>
+        <label class="field" id="wLook"><span>Look</span><select id="fLook"><option value="equip">Equip</option><option value="morning">The Morning Show</option><option value="energize">ENERGIZE</option></select></label>
+      </div>
+      <label class="switch"><input type="checkbox" id="fEnabled" /> Show it</label>
+      <div class="foot"><button class="btn danger small" id="mDelete">Delete</button><div class="spacer"></div><button class="btn secondary" id="mCancel">Cancel</button><button class="btn" id="mSave">Save</button></div>
+    </div>
+  </div>
+  <script src="/schedule-admin.js"></script>
+</body>
+</html>

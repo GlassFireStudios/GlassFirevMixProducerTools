@@ -1,0 +1,53 @@
+{
+  "kit": "equip26",
+  "title": "Equip Exposition 2026",
+  "source": "C:\\Equip",
+  "root": "C:\\Equip",
+  "mediaS3": "equip26/media/",
+  "startup": { "H": "vMix/EQUIP26 Horizontal.vmix", "V": "vMix/EQUIP26 Vertical.vmix" },
+  "countdownExpires": "2026-10-24T23:59:00-04:00",
+  "schedule": {
+    "blocks": [
+      { "name": "1 WED A", "start": "2026-10-20T00:00" },
+      { "name": "2 WED B", "start": "2026-10-21T12:00" },
+      { "name": "3 THU A", "start": "2026-10-22T00:00" },
+      { "name": "4 THU B", "start": "2026-10-22T09:30" },
+      { "name": "5 THU C", "start": "2026-10-22T12:30" },
+      { "name": "6 THU D", "start": "2026-10-22T15:00" },
+      { "name": "7 THU E", "start": "2026-10-22T18:00" },
+      { "name": "8 FRI A", "start": "2026-10-23T00:00" },
+      { "name": "9 FRI B", "start": "2026-10-23T12:15" }
+    ],
+    "events": [
+      { "title": "Opening Keynote: Mike Holmes", "where": "Room B103", "start": "2026-10-21T11:00" },
+      { "title": "Outdoor Demo Yard Opens", "where": "Outdoor Demo Yard", "start": "2026-10-21T12:00" },
+      { "title": "Wednesday Night Block Party", "where": "4th Street Live!", "start": "2026-10-21T19:30" },
+      { "title": "The Morning Show", "where": "Room B103", "start": "2026-10-22T08:00", "look": "morning" },
+      { "title": "Outdoor Demo Yard Opens", "where": "Outdoor Demo Yard", "start": "2026-10-22T09:00" },
+      { "title": "Mutt Madness", "where": "TurfMutt Park, South Wing Lobby A", "start": "2026-10-22T11:00" },
+      { "title": "ENERGIZE", "where": "Room B103", "start": "2026-10-22T14:00", "look": "energize" },
+      { "title": "Women's Leadership Keynote", "where": "Room B103", "start": "2026-10-22T16:00" },
+      { "title": "Women's Leadership Reception", "where": "Room B101", "start": "2026-10-22T17:00" },
+      { "title": "Paristown Block Party", "where": "Old Forester's Paristown Hall", "start": "2026-10-22T18:30" },
+      { "title": "Outdoor Demo Yard Opens", "where": "Outdoor Demo Yard", "start": "2026-10-23T09:00" }
+    ]
+  },
+  "files": [
+    { "path": "vMix/EQUIP26 Horizontal.vmix", "role": "H", "apply": "preset" },
+    { "path": "vMix/EQUIP26 Vertical.vmix", "role": "V", "apply": "preset" },
+    { "path": "vMix/Fix Vertical Live Layers.ps1", "role": "V" },
+    { "path": "Countdown/countdown.html", "role": "all", "apply": "countdown", "transform": "countdown" },
+    { "path": "vMix/vMix Auto Switch Script.txt", "role": "H", "transform": "autoswitch-H", "as": "vMix/AutoSwitch.txt" },
+    { "path": "vMix/vMix Auto Switch Script.txt", "role": "V", "transform": "autoswitch-V", "as": "vMix/AutoSwitch.txt" },
+    { "path": "Companion/EQUIP26 Horizontal.companionconfig", "role": "H" },
+    { "path": "Companion/EQUIP26 Vertical.companionconfig", "role": "V" }
+  ],
+  "media": [
+    { "glob": "Equip Digital Signage/Horizontal 3840x2160/*.mp4", "role": "H" },
+    { "glob": "Equip Digital Signage/Vertical 2160x3840/*.mp4", "role": "V" },
+    { "glob": "Equip Digital Signage/Vertical Live Bottom 2160x2625/*.mp4", "role": "V" },
+    { "glob": "Live Bugs 3840x2160 (transparent PNG)/*.png", "role": "all" },
+    { "glob": "01 Keynote Presentation/*.png", "role": "all" },
+    { "glob": "02 The Morning Show/*.mp4", "role": "all" }
+  ]
+}

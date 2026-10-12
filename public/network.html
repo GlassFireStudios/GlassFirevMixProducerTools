@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Network · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="btn secondary" href="/admin">Admin</a>
+  </header>
+
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Network</h1>
+      <span class="muted">Peplink InControl2</span>
+      <div class="spacer"></div>
+      <span class="muted small" id="updated"></span>
+      <button class="btn small secondary" id="refresh">Refresh</button>
+    </div>
+
+    <div class="signin hidden" id="signin"><p>Sign in to see network status.</p><a class="btn" href="/admin?next=/network">Sign in</a></div>
+    <div class="result warn hidden" id="err"></div>
+
+    <section class="panel hidden" id="setup">
+      <h2>Connect InControl2</h2>
+      <p class="muted small"><b>Not your InControl2 login.</b> In InControl2, open your profile, find <b>Client Applications</b>, and click <b>GlassFire Live Tools</b>. Copy its <b>Client ID</b> and <b>Client Secret</b> (long random strings). The Org ID is the code in your InControl2 address bar after <code>/o/</code>.</p>
+      <div class="row">
+        <label class="field"><span>Client ID (API client, not your email)</span><input id="cid" autocomplete="off" placeholder="e.g. cc1f…" /></label>
+        <label class="field"><span>Client Secret (not your password)</span><input id="csec" type="password" autocomplete="new-password" placeholder="paste client secret" /></label>
+        <label class="field"><span>Org ID</span><input id="org" autocomplete="off" /></label>
+      </div>
+      <button class="btn" id="save">Save and connect</button>
+      <span class="muted small" id="saveMsg"></span>
+    </section>
+
+    <section class="panel" id="fhPanel">
+      <div class="section-head"><h2>FusionHub live</h2><span class="muted small">SpeedFusion bonding, every 2s</span><div class="spacer"></div>
+        <span class="muted small" id="fhAt"></span></div>
+      <div class="result warn hidden" id="fhErr"></div>
+      <div class="hidden" id="fhSetup">
+        <p class="muted small">One-time setup. Enter the FusionHub <b>admin</b> login. The hub uses it once to create a <b>read-only</b> API client for itself, then forgets the password.</p>
+        <div class="row">
+          <label class="field"><span>FusionHub address</span><input id="fhHost" value="172.31.73.237" autocomplete="off" /></label>
+          <label class="field"><span>Admin username</span><input id="fhUser" autocomplete="off" /></label>
+          <label class="field"><span>Admin password</span><input id="fhPass" type="password" autocomplete="new-password" /></label>
+        </div>
+        <button class="btn" id="fhConnect">Create read-only client</button> <span class="muted small" id="fhMsg"></span>
+      </div>
+      <div id="fhPeers"></div>
+    </section>
+
+    <section class="panel" id="slPanel">
+      <div class="section-head"><h2>Starlink</h2><span class="muted small" id="slAcct"></span><div class="spacer"></div>
+        <span class="muted small" id="slUpdated"></span><button class="btn small secondary" id="slRefresh">Refresh</button></div>
+      <div class="result warn hidden" id="slErr"></div>
+      <div class="hidden" id="slSetup">
+        <p class="muted small">Starlink, then <b>Settings</b>, then <b>API Service Accounts</b>, then <b>GlassFire Live Tools</b>. Paste its <b>Client ID</b> and the <b>secret</b> you saved when it was created (Starlink only shows the secret once; if it's lost, add a new secret there).</p>
+        <div class="row">
+          <label class="field"><span>Client ID</span><input id="slId" autocomplete="off" /></label>
+          <label class="field"><span>Secret</span><input id="slSecret" type="password" autocomplete="new-password" placeholder="paste secret" /></label>
+        </div>
+        <button class="btn" id="slSave">Save and connect</button> <span class="muted small" id="slMsg"></span>
+      </div>
+      <div id="slLines"></div>
+      <p class="muted small"><a href="#" id="slEdit">Change Starlink connection</a></p>
+    </section>
+
+    <h2 class="subhead" style="margin-top:1.4rem">Peplink</h2>
+    <section id="devices"></section>
+
+    <section class="panel">
+      <details>
+        <summary class="muted">Raw InControl2 data (for tuning this page)</summary>
+        <pre class="raw" id="raw"></pre>
+      </details>
+      <p class="muted small"><a href="#" id="editCfg">Change InControl2 connection</a></p>
+    </section>
+  </main>
+
+  <script src="/chart.js"></script>
+  <script src="/network.js"></script>
+  <script src="/network-fusionhub.js"></script>
+  <script src="/network-starlink.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Field · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+  </header>
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>Field</h1>
+      <span class="muted">show computers, their kit, and support requests</span>
+      <div class="spacer"></div>
+      <button class="btn" id="add">+ Add computer</button>
+    </div>
+    <div class="signin hidden" id="signin"><p>Sign in to manage field computers.</p><a class="btn" href="/admin?next=/field">Sign in</a></div>
+
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">Support requests</h2><div class="spacer"></div>
+        <label class="small muted"><input type="checkbox" id="showDone" /> show resolved</label></div>
+      <div id="tickets"><p class="muted">Loading…</p></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">Computers</h2></div>
+      <div id="machines"><p class="muted">Loading…</p></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">Kits &amp; Slack</h2></div>
+      <div id="kits" class="small"></div>
+      <div class="row" style="margin-top:.6rem">
+        <label class="field" style="flex:1"><span>Slack incoming webhook for #field-support</span><input id="slackUrl" type="password" placeholder="https://hooks.slack.com/services/…" autocomplete="off" /></label>
+        <button class="btn small" id="slackSave">Save</button>
+        <button class="btn small secondary" id="slackTest">Send test</button>
+      </div>
+      <p class="small muted" id="slackState"></p>
+    </section>
+  </main>
+
+  <div class="modal-back hidden" id="modal">
+    <div class="modal">
+      <h3>Add a show computer</h3>
+      <div class="row">
+        <label class="field"><span>Name</span><input id="fName" maxlength="60" placeholder="Equip NUC H" /></label>
+        <label class="field"><span>Role</span><select id="fRole"><option value="H">Horizontal</option><option value="V">Vertical</option></select></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Kit</span><select id="fKit"></select></label>
+        <label class="field"><span>Licence ends (kit removed after)</span><input id="fExp" type="datetime-local" /></label>
+      </div>
+      <div class="foot"><button class="btn secondary" id="cancel">Cancel</button><button class="btn" id="create">Create</button></div>
+    </div>
+  </div>
+
+  <div class="modal-back hidden" id="cmdModal">
+    <div class="modal">
+      <h3>Install on the computer</h3>
+      <p class="small">On the show computer, open <b>PowerShell as administrator</b> and paste this. The code works once and expires in 48 hours.</p>
+      <pre class="mono small" id="cmd" style="white-space:pre-wrap;word-break:break-all;background:var(--panel-2,#111);padding:.6rem;border-radius:6px"></pre>
+      <div class="foot"><button class="btn secondary" id="cmdCopy">Copy</button><button class="btn" id="cmdClose">Done</button></div>
+    </div>
+  </div>
+  <script src="/field.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="robots" content="noindex" />
+  <title>Join the show · GlassFire</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="join">
+  <header class="join-head">
+    <img src="/brand/livetools-icon.svg" alt="" width="40" height="40" />
+    <span>GlassFire</span>
+  </header>
+
+  <main class="join-main">
+    <ol class="steps" id="steps" aria-label="Progress">
+      <li data-s="welcome">Welcome</li><li data-s="browser">Browser</li><li data-s="av">Camera &amp; mic</li>
+      <li data-s="sound">Sound</li><li data-s="net">Connection</li><li data-s="ready">Join</li>
+    </ol>
+
+    <!-- 1. Welcome -->
+    <section class="step" id="s-welcome">
+      <h1 id="hello">Welcome</h1>
+      <p class="lead" id="showLine">You've been invited to join a live show. This takes about two minutes and checks that everything works before you go on.</p>
+      <label class="field big"><span>Your name, as the producer will see it</span>
+        <input id="name" autocomplete="name" maxlength="60" />
+      </label>
+      <ul class="tips">
+        <li>Find a quiet spot with light on your face.</li>
+        <li>Plug in headphones if you have them. Wired is best.</li>
+        <li>Close other video apps (Zoom, Teams, FaceTime).</li>
+      </ul>
+      <button class="btn xl" id="goBrowser">Start the check</button>
+      <p class="muted small" id="notReady"></p>
+    </section>
+
+    <!-- 2. Browser -->
+    <section class="step hidden" id="s-browser">
+      <h1>Checking your browser</h1>
+      <div class="result" id="browserResult"></div>
+      <div class="actions"><button class="btn xl" id="goAv">Next</button></div>
+    </section>
+
+    <!-- 3. Camera & mic -->
+    <section class="step hidden" id="s-av">
+      <h1>Camera and microphone</h1>
+      <p class="lead" id="avLead">Your browser will ask to use your camera and microphone. Press <b>Allow</b>.</p>
+      <div class="av-grid">
+        <video id="preview" autoplay playsinline muted></video>
+        <div class="av-side">
+          <label class="field"><span>Camera</span><select id="camSel"></select></label>
+          <label class="field"><span>Microphone</span><select id="micSel"></select></label>
+          <div class="mic-meter" aria-label="Microphone level"><div id="micBar"></div></div>
+          <p class="muted small" id="micHint">Say something. The bar should move.</p>
+        </div>
+      </div>
+      <div class="result hidden" id="avResult"></div>
+      <div class="actions">
+        <button class="btn secondary" id="avRetry">Ask again</button>
+        <button class="btn xl" id="goSound" disabled>I can see and hear myself</button>
+      </div>
+    </section>
+
+    <!-- 4. Sound -->
+    <section class="step hidden" id="s-sound">
+      <h1>Can you hear us?</h1>
+      <p class="lead">Press play. You should hear a short chime.</p>
+      <button class="btn secondary" id="playTone">Play chime</button>
+      <div class="choice">
+        <p>Are you wearing headphones?</p>
+        <label><input type="radio" name="hp" value="yes" /> Yes</label>
+        <label><input type="radio" name="hp" value="no" /> No</label>
+      </div>
+      <div class="result hidden" id="hpNote"></div>
+      <div class="actions">
+        <button class="btn secondary" id="noHear">I didn't hear it</button>
+        <button class="btn xl" id="goNet">I heard it</button>
+      </div>
+      <div class="result hidden" id="soundHelp"></div>
+    </section>
+
+    <!-- 5. Network -->
+    <section class="step hidden" id="s-net">
+      <h1>Checking your connection</h1>
+      <p class="lead" id="netLead">This takes a few seconds.</p>
+      <div class="net-grid">
+        <div class="stat"><span class="s-label">Download</span><span class="s-value" id="dl">…</span></div>
+        <div class="stat"><span class="s-label">Upload</span><span class="s-value" id="ul">…</span></div>
+        <div class="stat"><span class="s-label">Delay</span><span class="s-value" id="rtt">…</span></div>
+      </div>
+      <div class="result hidden" id="netResult"></div>
+      <div class="actions">
+        <button class="btn secondary hidden" id="netRetry">Test again</button>
+        <button class="btn xl" id="goReady" disabled>Next</button>
+      </div>
+    </section>
+
+    <!-- 6. Ready -->
+    <section class="step hidden" id="s-ready">
+      <h1>You're ready</h1>
+      <ul class="summary" id="summary"></ul>
+      <div class="next-box">
+        <p><b>What happens next:</b> we open the vMix Call page. Your browser will ask for your camera and microphone <b>one more time</b>. Press <b>Allow</b>, then <b>Join Call</b>.</p>
+        <p class="muted small">The producer can see and hear you before you go on air, so there's no need to rush.</p>
+      </div>
+      <button class="btn xl" id="joinBtn">Join the show</button>
+      <p class="muted small" id="joinNote"></p>
+    </section>
+
+    <details class="help">
+      <summary>Something not working?</summary>
+      <ul>
+        <li><b>No camera or mic prompt:</b> click the camera icon in the address bar and choose Allow, then press "Ask again".</li>
+        <li><b>iPhone or iPad:</b> use Safari. In Settings, go to Safari, then Camera and Microphone, and choose Allow.</li>
+        <li><b>Opened from Gmail, Facebook or Instagram?</b> Open this link in Chrome or Safari instead.</li>
+        <li><b>Work laptop?</b> Company firewalls can block video calls. Try your phone on cellular data.</li>
+        <li>Still stuck? Reply to the producer who sent this link. They can see how far you got.</li>
+      </ul>
+    </details>
+  </main>
+
+  <script src="/join.js"></script>
+</body>
+</html>

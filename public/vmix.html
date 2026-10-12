@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>vMix · GlassFire Live Tools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/GlassFireStudios/glassfirebrandassets@main/GlassFire%20Design%20System/colors_and_type.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/brand/livetools-icon.svg" />
+</head>
+<body class="home">
+  <header class="home-head">
+    <a class="home-brand" href="/">
+      <img src="/brand/livetools-icon.svg" alt="" width="44" height="44" />
+      <span>GlassFire <b>Live Tools</b></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="btn secondary" href="/guests">vMix machines</a>
+  </header>
+  <main class="home-main detail">
+    <div class="detail-title">
+      <a class="muted small" href="/">All tools</a>
+      <h1>vMix</h1>
+      <span class="muted">live from each machine's API, every second</span>
+    </div>
+    <div class="signin hidden" id="signin"><p>Sign in to see vMix.</p><a class="btn" href="/admin?next=/vmix">Sign in</a></div>
+    <div id="machines"></div>
+    <p class="muted small">vMix's API reports inputs, levels and on/off states, but not stream health (bitrate, dropped frames, SRT loss). Feeds routed through the ingest server get full metrics on their Ingest page.</p>
+  </main>
+  <script src="/vmix.js"></script>
+</body>
+</html>
