@@ -107,10 +107,10 @@ for (const f of manifest.files) console.log(`  ${f.role.padEnd(3)} ${f.path}  ${
 if (dry) { console.log(`dry run: staged at ${stage}`); process.exit(0); }
 
 // Upload: tar the staged kit, swap it in atomically on the hub.
-const tgz = path.join(stage, 'kit.tgz');
-execFileSync('tar', ['-czf', tgz, '-C', stage, def.kit], { stdio: 'inherit' });
+// Relative paths only: GNU tar and scp read "C:\..." as a remote host.
+execFileSync('tar', ['-czf', 'kit.tgz', def.kit], { stdio: 'inherit', cwd: stage });
 const ssh = ['-i', KEY, '-o', 'LogLevel=ERROR'];
-execFileSync('scp', [...ssh, tgz, `${HOST}:/tmp/kit-${def.kit}.tgz`], { stdio: 'inherit' });
+execFileSync('scp', [...ssh, 'kit.tgz', `${HOST}:/tmp/kit-${def.kit}.tgz`], { stdio: 'inherit', cwd: stage });
 execFileSync('ssh', [...ssh, HOST, [
   'set -e', `mkdir -p ${APP}/data/kits`, `cd ${APP}/data/kits`,
   `rm -rf .${def.kit}.new && mkdir .${def.kit}.new && tar -xzf /tmp/kit-${def.kit}.tgz -C .${def.kit}.new`,
