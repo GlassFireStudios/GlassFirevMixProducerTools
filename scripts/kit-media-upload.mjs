@@ -65,7 +65,7 @@ for (const f of files) {
   if (s?.have) { skipped += 1; continue; }
   const t0 = Date.now();
   const body = Readable.toWeb(createReadStream(path.join(def.source, ...f.rel.split('/'))));
-  const res = await fetch(s.url, { method: 'PUT', body, duplex: 'half', headers: { 'Content-Length': String(f.size), 'x-amz-meta-sha256': f.sha256 } });
+  const res = await fetch(s.url, { method: 'PUT', body, duplex: 'half', headers: { 'Content-Length': String(f.size) } });
   if (!res.ok) { console.error(`! ${f.rel}: ${res.status} ${(await res.text()).slice(0, 300)}`); process.exitCode = 1; continue; }
   sent += 1;
   const secs = (Date.now() - t0) / 1000;

@@ -17,11 +17,10 @@ export async function signGet(key, expiresIn = 6 * 3600) {
   return getSignedUrl(s3(), new GetObjectCommand({ Bucket: MEDIA_BUCKET, Key: key }), { expiresIn });
 }
 
-// The uploader must send exactly this length and the sha256 metadata header.
+// The sha256 metadata travels in the signed URL's query string; the uploader
+// sends only the body (with its exact length).
 export async function signPut(key, size, sha256, expiresIn = 3 * 3600) {
-  return getSignedUrl(s3(), new PutObjectCommand({ Bucket: MEDIA_BUCKET, Key: key, ContentLength: size, Metadata: { sha256 } }), {
-    expiresIn, signableHeaders: new Set(['content-length', 'x-amz-meta-sha256']),
-  });
+  return getSignedUrl(s3(), new PutObjectCommand({ Bucket: MEDIA_BUCKET, Key: key, Metadata: { sha256 } }), { expiresIn });
 }
 
 // { size, sha256 } of an object, or null when it isn't there.
