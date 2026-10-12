@@ -1,0 +1,26 @@
+{
+  "kit": "equip26",
+  "title": "Equip Exposition 2026",
+  "source": "C:\\Equip",
+  "root": "C:\\Equip",
+  "startup": { "H": "vMix/EQUIP26 Horizontal.vmix", "V": "vMix/EQUIP26 Vertical.vmix" },
+  "countdownExpires": "2026-10-24T23:59:00-04:00",
+  "files": [
+    { "path": "vMix/EQUIP26 Horizontal.vmix", "role": "H", "apply": "preset" },
+    { "path": "vMix/EQUIP26 Vertical.vmix", "role": "V", "apply": "preset" },
+    { "path": "vMix/Fix Vertical Live Layers.ps1", "role": "V" },
+    { "path": "Countdown/countdown.html", "role": "all", "apply": "countdown", "transform": "countdown" },
+    { "path": "vMix/vMix Auto Switch Script.txt", "role": "H", "transform": "autoswitch-H", "as": "vMix/AutoSwitch.txt" },
+    { "path": "vMix/vMix Auto Switch Script.txt", "role": "V", "transform": "autoswitch-V", "as": "vMix/AutoSwitch.txt" },
+    { "path": "Companion/EQUIP26 Horizontal.companionconfig", "role": "H" },
+    { "path": "Companion/EQUIP26 Vertical.companionconfig", "role": "V" }
+  ],
+  "media": [
+    { "glob": "Equip Digital Signage/Horizontal 3840x2160/*.mp4", "role": "H" },
+    { "glob": "Equip Digital Signage/Vertical 2160x3840/*.mp4", "role": "V" },
+    { "glob": "Equip Digital Signage/Vertical Live Bottom 2160x2625/*.mp4", "role": "V" },
+    { "glob": "Live Bugs 3840x2160 (transparent PNG)/*.png", "role": "all" },
+    { "glob": "01 Keynote Presentation/*.png", "role": "all" },
+    { "glob": "02 The Morning Show/*.mp4", "role": "all" }
+  ]
+}

@@ -28,6 +28,7 @@ import { Starlink } from './starlink.js';
 import { FusionHub } from './fusionhub.js';
 import { Shows, publicShow } from './shows.js';
 import { ScreenChecks, cleanReport } from './screenchecks.js';
+import { Field, manifestFor, isExpired, UPLOADS_DIR, UPLOAD_CAP_BYTES, uploadsBytes } from './field.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -68,6 +69,21 @@ const fusionhub = await new FusionHub().load();
 fusionhub.start();
 const shows = await new Shows().load();
 const screenChecks = await new ScreenChecks().load();
+const field = await new Field({ notify: (text) => slackNotify(text) }).load();
+setInterval(() => field.sweep().catch(() => {}), 60_000).unref();
+
+// Field alerts go to the #field-support Slack channel via its incoming webhook.
+async function slackNotify(text) {
+  const url = field?.data.slackWebhook;
+  if (!url) return false;
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: AbortSignal.timeout(8000) });
+    return r.ok;
+  } catch (e) {
+    console.warn('[field] slack post failed:', e.message);
+    return false;
+  }
+}
 
 // Public guest hostname: serves ONLY the guest join flow, never the dashboard.
 const JOIN_HOST = (process.env.JOIN_HOST || 'join.glassfire.co').toLowerCase();
@@ -83,6 +99,7 @@ app.use((req, res, next) => {
   const cache = 'public, max-age=60, stale-while-revalidate=300, stale-if-error=86400';
   if (req.path === '/watch.js') { res.setHeader('Cache-Control', cache); return res.sendFile(path.join(PUBLIC_DIR, 'watch.js')); }
   if (/^\/(check|check\.js|api\/check\/[\w]+)$/.test(req.path)) return checkRouter(req, res, next);
+  if (req.path.startsWith('/fm/')) return fieldRouter(req, res, () => res.status(404).type('text').send('Not found'));
   let m = /^\/api\/show\/([\w-]+)$/.exec(req.path);
   if (m) {
     const show = shows.get(m[1]);
@@ -244,6 +261,108 @@ checkRouter.post('/api/check/report', joinLimiter, express.json({ limit: '16kb' 
 });
 app.use(checkRouter);
 app.get('/screens', (req, res) => sendPage(res, 'screens.html'));
+
+// ---- Field machines (public on live.glassfire.co/fm/; token-authenticated) ----
+const FIELD_DIR = path.join(__dirname, '..', 'field');
+const fieldScripts = new Map(); // name -> { text, sha256 }
+async function fieldScript(name) {
+  if (!fieldScripts.has(name)) {
+    const text = await fsp.readFile(path.join(FIELD_DIR, name), 'utf8');
+    fieldScripts.set(name, { text, sha256: crypto.createHash('sha256').update(text, 'utf8').digest('hex') });
+  }
+  return fieldScripts.get(name);
+}
+const bearer = (req) => /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '')?.[1] || '';
+function machineAuth(req, res, next) {
+  const m = field.byToken(bearer(req));
+  if (!m) return res.status(401).json({ error: 'unknown machine' });
+  req.machine = m;
+  next();
+}
+function supportAuth(req, res, next) {
+  const m = field.bySupportKey(String(req.headers['x-support-key'] || req.query.k || ''));
+  if (!m) return res.status(401).json({ error: 'This support link is not valid. Ask GlassFire for a new one.' });
+  req.machine = m;
+  next();
+}
+const fieldRouter = express.Router();
+fieldRouter.use((req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+fieldRouter.get('/fm/install.ps1', async (req, res) => res.type('text/plain').send((await fieldScript('install.ps1')).text));
+fieldRouter.get('/fm/agent.ps1', async (req, res) => res.type('text/plain').send((await fieldScript('agent.ps1')).text));
+fieldRouter.post('/fm/api/enroll', joinLimiter, express.json({ limit: '8kb' }), async (req, res) => {
+  const r = await field.enroll(req.body?.code, req.body?.hostname);
+  if (!r) return res.status(404).json({ error: 'That install code is wrong or has expired. Make a new one on livetools > Field.' });
+  slackNotify(`:computer: *${r.machine.name}* installed on ${r.machine.hostname || 'a machine'}`);
+  res.json({ machineId: r.machine.id, name: r.machine.name, role: r.machine.role, kit: r.machine.kit, token: r.token, supportKey: r.supportKey, hub: `https://${LIVE_HOST}` });
+});
+fieldRouter.get('/fm/api/manifest', machineAuth, async (req, res) => {
+  await field.refreshKits();
+  const kit = field.kits.get(req.machine.kit) || { kit: req.machine.kit, version: '', root: 'C:\\GlassFire\\Kit', files: [], media: [] };
+  res.json({ ...manifestFor(kit, req.machine), agent: { sha256: (await fieldScript('agent.ps1')).sha256 } });
+});
+fieldRouter.get('/fm/api/file', machineAuth, (req, res) => {
+  const m = req.machine;
+  const entry = field.kitEntry(m.kit, m, String(req.query.path || ''));
+  if (!entry || isExpired(m)) return res.status(404).json({ error: 'not-found' });
+  res.sendFile(field.kitFilePath(m.kit, entry.stored || entry.path));
+});
+fieldRouter.post('/fm/api/heartbeat', machineAuth, express.json({ limit: '64kb' }), async (req, res) => {
+  const b = req.body || {};
+  const v = b.vmix || {};
+  const clip = (s, n = 200) => String(s ?? '').slice(0, n);
+  await field.heartbeat(req.machine, {
+    at: Date.now(), kitVersion: clip(b.kitVersion, 40), agentVersion: clip(b.agentVersion, 80), hostname: clip(b.hostname, 80),
+    timezone: clip(b.timezone, 80), clockSkewSec: Number(b.clockSkewSec) || 0, diskFreeGB: Number(b.diskFreeGB) || 0, uptimeHours: Number(b.uptimeHours) || 0,
+    missingMedia: (Array.isArray(b.missingMedia) ? b.missingMedia : []).slice(0, 50).map((s) => clip(s, 200)),
+    notes: (Array.isArray(b.notes) ? b.notes : []).slice(0, 20).map((s) => clip(s, 300)),
+    expiredApplied: !!b.expiredApplied,
+    vmix: {
+      running: !!v.running, version: clip(v.version, 40), edition: clip(v.edition, 40), preset: clip(v.preset, 260),
+      active: clip(v.active, 120), preview: clip(v.preview, 120), streaming: !!v.streaming, recording: !!v.recording, external: !!v.external,
+      overlays: (Array.isArray(v.overlays) ? v.overlays : []).slice(0, 8).map((s) => clip(s, 120)), inputs: Number(v.inputs) || 0,
+    },
+  });
+  res.json({ ok: true, serverTime: Date.now() });
+});
+// Support app: the machine's support key only (it cannot read kit files).
+fieldRouter.get('/fm/support', (req, res) => sendPage(res, 'support.html'));
+fieldRouter.get('/fm/support.js', (req, res) => res.type('application/javascript').sendFile(path.join(PUBLIC_DIR, 'support.js')));
+fieldRouter.get('/fm/api/support/me', supportAuth, (req, res) => {
+  const m = field.publicMachine(req.machine);
+  res.json({
+    machine: { name: m.name, role: m.role, online: m.online, expired: m.expired, expiresAt: m.expiresAt, status: m.status },
+    tickets: field.tickets(req.machine.id).map(({ context, ...t }) => t),
+  });
+});
+fieldRouter.post('/fm/api/support/tickets', supportAuth, joinLimiter, express.json({ limit: '32kb' }), async (req, res) => {
+  try { res.json({ ticket: await field.createTicket(req.machine, req.body || {}) }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+// Media upload in chunks (Cloudflare caps one request at 100 MB). ?ticket&name&offset&size
+fieldRouter.post('/fm/api/support/upload', supportAuth, express.raw({ type: '*/*', limit: '9mb' }), async (req, res) => {
+  const t = field.ticket(String(req.query.ticket || ''));
+  if (!t || t.machineId !== req.machine.id) return res.status(404).json({ error: 'not-found' });
+  const size = Number(req.query.size) || 0;
+  const offset = Number(req.query.offset) || 0;
+  const chunk = req.body || Buffer.alloc(0);
+  if (offset === 0 && (await uploadsBytes()) + size > UPLOAD_CAP_BYTES) return res.status(507).json({ error: 'GlassFire upload space is full. Post in Slack and we will collect the file another way.' });
+  const f = await field.addFile(t, req.query.name, size);
+  const dir = path.join(UPLOADS_DIR, t.id);
+  await fsp.mkdir(dir, { recursive: true });
+  const dest = path.join(dir, f.name);
+  const have = await fsp.stat(dest).then((s) => s.size).catch(() => 0);
+  if (offset !== have) return res.status(409).json({ error: 'offset', have });
+  await fsp.appendFile(dest, chunk);
+  const now = have + chunk.length;
+  if (now >= size && !f.done) {
+    f.done = true;
+    await field._save();
+    slackNotify(`:paperclip: *${req.machine.name}* uploaded *${f.name}* (${(size / 1048576).toFixed(1)} MB) to ticket ${t.id}`);
+  }
+  res.json({ ok: true, have: now });
+});
+
+app.use(fieldRouter);
+app.get('/field', (req, res) => sendPage(res, 'field.html'));
 
 app.get('/producer', gateProducer, (req, res) => sendPage(res, 'index.html'));
 app.get('/grid.html', gateProducer, (req, res) => sendPage(res, 'grid.html'));
@@ -566,7 +685,63 @@ admin.put('/shows/:slug', async (req, res) => {
     res.json({ show: s2 });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
-admin.get('/screen-checks', (req, res) => res.json({ checks: screenChecks.list(), checkUrl: `https://${LIVE_HOST}/check` }));
+// ---- Field machines + support queue -----------------------------------------
+const installCommand = (code) => `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://${LIVE_HOST}/fm/install.ps1))) -Code ${code}"`;
+admin.get('/field', async (req, res) => {
+  res.json({
+    machines: field.list().map((m) => field.publicMachine(m)),
+    tickets: field.tickets(),
+    kits: [...field.kits.values()].map((k) => ({ kit: k.kit, version: k.version, files: k.files?.length || 0, media: k.media?.length || 0, publishedAt: k.publishedAt || '' })),
+    slack: !!field.data.slackWebhook,
+    uploadsBytes: await uploadsBytes(), uploadCap: UPLOAD_CAP_BYTES,
+  });
+});
+admin.post('/field/machines', async (req, res) => {
+  try {
+    const r = await field.createMachine(req.body || {});
+    res.json({ ...r, command: installCommand(r.code) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.post('/field/machines/:id/code', async (req, res) => {
+  if (!field.get(req.params.id)) return res.status(404).json({ error: 'not-found' });
+  const code = await field.newEnrollCode(req.params.id);
+  res.json({ code, command: installCommand(code) });
+});
+admin.patch('/field/machines/:id', async (req, res) => {
+  const m = await field.updateMachine(req.params.id, req.body || {});
+  if (!m) return res.status(404).json({ error: 'not-found' });
+  res.json({ machine: m });
+});
+admin.delete('/field/machines/:id', async (req, res) => {
+  if (!(await field.removeMachine(req.params.id))) return res.status(404).json({ error: 'not-found' });
+  res.json({ ok: true });
+});
+admin.post('/field/tickets/:id/reply', async (req, res) => {
+  const t = field.ticket(req.params.id);
+  if (!t) return res.status(404).json({ error: 'not-found' });
+  await field.reply(t, req.body?.text, 'GlassFire');
+  res.json({ ticket: t });
+});
+admin.post('/field/tickets/:id/status', async (req, res) => {
+  const t = field.ticket(req.params.id);
+  if (!t) return res.status(404).json({ error: 'not-found' });
+  res.json({ ticket: await field.setTicketStatus(t, req.body?.status) });
+});
+admin.get('/field/tickets/:id/files/:name', (req, res) => {
+  const t = field.ticket(req.params.id);
+  const f = t?.files.find((x) => x.name === req.params.name);
+  if (!f) return res.status(404).json({ error: 'not-found' });
+  res.download(path.join(UPLOADS_DIR, t.id, f.name), f.name);
+});
+admin.put('/field/slack', async (req, res) => {
+  try { await field.setSlack(req.body?.url); res.json({ ok: true }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.post('/field/slack/test', async (req, res) => {
+  res.json({ ok: await slackNotify(':white_check_mark: GlassFire Live Tools can post to this channel.') });
+});
+admin.post('/field/kits/reload', async (req, res) => { await field.loadKits(); res.json({ kits: [...field.kits.keys()] }); });
+
+admin.get('/screen-checks',(req, res) => res.json({ checks: screenChecks.list(), checkUrl: `https://${LIVE_HOST}/check` }));
 admin.delete('/screen-checks', async (req, res) => { await screenChecks.clear(); res.json({ ok: true }); });
 admin.delete('/screen-checks/:id', async (req, res) => {
   if (!(await screenChecks.remove(req.params.id))) return res.status(404).json({ error: 'not-found' });
