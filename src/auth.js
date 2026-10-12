@@ -48,7 +48,7 @@ export function parseCookies(req) {
   return out;
 }
 
-export function setSessionCookie(res, token) {
+export function setSessionCookie(res, token, secure = false) {
   const attrs = [
     `${COOKIE}=${token}`,
     'Path=/',
@@ -56,6 +56,7 @@ export function setSessionCookie(res, token) {
     'SameSite=Lax',
     `Max-Age=${Math.floor(TTL_MS / 1000)}`,
   ];
+  if (secure) attrs.push('Secure');
   res.append('Set-Cookie', attrs.join('; '));
 }
 

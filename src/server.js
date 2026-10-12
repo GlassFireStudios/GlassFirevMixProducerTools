@@ -161,10 +161,14 @@ async function sendPage(res, file, cacheControl = 'no-cache') {
 // ---------------------------------------------------------------------------
 // Producer access-token gate (optional)
 // ---------------------------------------------------------------------------
+const isHttps = (req) => req.secure || req.headers['x-forwarded-proto'] === 'https' || /"scheme":"https"/.test(String(req.headers['cf-visitor'] || ''));
+
+// Producer views: admins always pass; anyone else needs the producer link token.
+// With no token set they are admin-only (the dashboard host is public).
 function producerAllowed(req) {
   const token = settings.producerToken;
-  if (!token) return true;
-  if (isAdmin(req, settings)) return true; // admins always pass
+  if (isAdmin(req, settings)) return true;
+  if (!token) return false;
   const k = req.query.k ?? req.headers['x-producer-token'];
   return k === token;
 }
@@ -403,10 +407,24 @@ app.use(express.static(PUBLIC_DIR, {
 app.get('/admin', (req, res) => sendPage(res, 'admin.html'));
 app.get('/ingest/:id', (req, res) => sendPage(res, 'ingest.html'));
 
+// The admin password is the only lock on the dashboard: slow down guessing.
+// Per IP: 8 failures per 15 min, then locked until the window passes.
+const loginFails = new Map();
 app.post('/api/admin/login', (req, res) => {
+  const ip = req.headers['cf-connecting-ip'] || req.socket.remoteAddress;
+  const now = Date.now();
+  const rec = loginFails.get(ip) || { n: 0, reset: now + 15 * 60_000 };
+  if (now > rec.reset) { rec.n = 0; rec.reset = now + 15 * 60_000; }
+  if (rec.n >= 8) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes.' });
   const { password } = req.body ?? {};
-  if (!settings.verifyAdmin(password)) return res.status(401).json({ error: 'bad-password' });
-  setSessionCookie(res, issueSession(settings.sessionSecret));
+  if (!settings.verifyAdmin(password)) {
+    rec.n += 1;
+    loginFails.set(ip, rec);
+    console.warn(`[admin] failed login from ${ip} (${rec.n})`);
+    return res.status(401).json({ error: 'bad-password' });
+  }
+  loginFails.delete(ip);
+  setSessionCookie(res, issueSession(settings.sessionSecret), isHttps(req));
   res.json({ ok: true });
 });
 
@@ -807,7 +825,7 @@ wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
   const k = url.searchParams.get('k');
   const token = settings.producerToken;
-  if (token && k !== token && !isAdmin(req, settings)) {
+  if (!isAdmin(req, settings) && (!token || k !== token)) {
     ws.close(4401, 'unauthorized');
     return;
   }
