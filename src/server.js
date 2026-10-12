@@ -30,6 +30,7 @@ import { Shows, publicShow } from './shows.js';
 import { ScreenChecks, cleanReport } from './screenchecks.js';
 import { Field, manifestFor, isExpired, UPLOADS_DIR, UPLOAD_CAP_BYTES, uploadsBytes } from './field.js';
 import { Schedules, effective, parseShift } from './schedule.js';
+import { signGet, mediaKey } from './media.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -317,7 +318,12 @@ fieldRouter.post('/fm/api/enroll', joinLimiter, express.json({ limit: '8kb' }), 
   res.json({ machineId: r.machine.id, name: r.machine.name, role: r.machine.role, kit: r.machine.kit, token: r.token, supportKey: r.supportKey, hub: `https://${LIVE_HOST}` });
 });
 fieldRouter.get('/fm/api/manifest', machineAuth, async (req, res) => {
-  const kit = (await kitWithSchedule(req.machine.kit)) || { kit: req.machine.kit, version: '', root: 'C:\\GlassFire\\Kit', files: [], media: [] };
+  let kit = (await kitWithSchedule(req.machine.kit)) || { kit: req.machine.kit, version: '', root: 'C:\\GlassFire\\Kit', files: [], media: [] };
+  // Media lives in S3: hand the machine short-lived signed download links.
+  if (kit.mediaS3 && !isExpired(req.machine)) {
+    const media = await Promise.all((kit.media || []).map(async (m) => ({ ...m, url: await signGet(mediaKey(kit.mediaS3, m.path)).catch(() => '') })));
+    kit = { ...kit, media };
+  }
   res.json({ ...manifestFor(kit, req.machine), agent: { sha256: (await fieldScript('agent.ps1')).sha256 } });
 });
 fieldRouter.get('/fm/api/file', machineAuth, (req, res) => {

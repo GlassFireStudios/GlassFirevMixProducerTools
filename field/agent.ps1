@@ -137,12 +137,15 @@ try {
     if ($failed -eq 0) { $state.kitVersion = [string]$m.version }
 
     # ---- 4. media -----------------------------------------------------------------
+    # One media download per run, so heartbeats keep flowing during a big first sync.
     $missing = @()
+    $fetched = $false
     foreach ($f in @($m.media)) {
       $dest = Join-Path $root ($f.path -replace '/', '\')
       $ok = (Test-Path -LiteralPath $dest) -and ((Get-Item -LiteralPath $dest).Length -eq [int64]$f.size)
       if ($ok) { continue }
-      if ($online -and $f.url) {
+      if ($online -and $f.url -and -not $fetched) {
+        $fetched = $true
         try {
           New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
           $tmp = "$dest.gfpart"

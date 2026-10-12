@@ -3,6 +3,7 @@
   "title": "Equip Exposition 2026",
   "source": "C:\\Equip",
   "root": "C:\\Equip",
+  "mediaS3": "equip26/media/",
   "startup": { "H": "vMix/EQUIP26 Horizontal.vmix", "V": "vMix/EQUIP26 Vertical.vmix" },
   "countdownExpires": "2026-10-24T23:59:00-04:00",
   "schedule": {

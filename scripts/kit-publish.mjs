@@ -78,6 +78,8 @@ const filesDir = path.join(stage, def.kit, 'files');
 const manifest = { kit: def.kit, title: def.title || def.kit, version, root: def.root, startup: def.startup || {}, publishedAt: new Date().toISOString(), files: [], media: [] };
 // Starting schedule; only used the first time the hub sees this kit (then edited on livetools).
 if (def.schedule) manifest.scheduleSeed = def.schedule;
+// Media in S3 (uploaded with kit-media-upload.mjs): the hub signs download links.
+if (def.mediaS3) manifest.mediaS3 = def.mediaS3;
 
 for (const f of def.files) {
   const src = path.join(def.source, ...f.path.split('/'));
