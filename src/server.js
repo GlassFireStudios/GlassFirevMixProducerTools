@@ -590,6 +590,11 @@ function ingestView(rec) {
       publisher: { rtmpServer: `rtmp://${host}/${INGEST_APP}`, streamKey: rec.key },
       vmixSrt: { host: priv, port: 8890, streamId: `read:${pathName}`, latencyMs: 200 },
       vmixRtmpUrl: `rtmp://${priv}/${pathName}`,
+      // For a vMix outside AWS (e.g. a show computer at a venue): SRT caller.
+      remotePull: rec.readPass ? {
+        host, port: 8890, streamId: `read:${pathName}:pull:${rec.readPass}`, latencyMs: 500,
+        rtmpUrl: `rtmp://${host}/${pathName}?user=pull&pass=${rec.readPass}`,
+      } : null,
     },
   };
 }

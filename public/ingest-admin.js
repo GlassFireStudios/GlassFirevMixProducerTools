@@ -126,6 +126,12 @@
       ${field('Stream ID', s.vmixSrt.streamId)}
       ${field('Latency (ms)', String(s.vmixSrt.latencyMs))}
       <details><summary class="muted">Prefer RTMP in vMix? (needs VLC for vMix)</summary>${field('URL', s.vmixRtmpUrl)}</details>
+      ${s.remotePull ? `<h4>3 · In a vMix outside AWS (venue / show computer)</h4>
+      <p class="muted">Add Input → Stream / SRT → Stream Type <b>SRT (Caller)</b>. The Stream ID carries this feed's own pull password.</p>
+      ${field('Hostname', s.remotePull.host)}
+      ${field('Port', String(s.remotePull.port))}
+      ${field('Stream ID', s.remotePull.streamId)}
+      ${field('Latency (ms)', String(s.remotePull.latencyMs))}` : ''}
       <p class="muted small">The stream key is a password. Anyone with it can push video into this input. Use “New key” to revoke it.</p>`;
     $('imBody').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copy(b.dataset.copy, b)));
     renderStatusLine(i);

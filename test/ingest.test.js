@@ -54,6 +54,18 @@ test('read: only VPC and loopback', () => {
   assert.equal(decideAuth({ action: 'playback', path: 'live/x', ip: '8.8.8.8' }, ctx).allow, false);
 });
 
+test('read from outside AWS needs that ingest\'s pull password', () => {
+  const c = { ...ctx, ingests: [{ key: 'breakout-1', enabled: true, readPass: 'p4ss' }, { key: 'off-2', enabled: false, readPass: 'p4ss' }] };
+  const r = (o) => decideAuth({ action: 'read', ip: '23.116.115.105', ...o }, c).allow;
+  assert.equal(r({ path: 'live/breakout-1', user: 'pull', password: 'p4ss' }), true);
+  assert.equal(r({ path: 'live/breakout-1', user: 'pull', password: 'wrong' }), false);
+  assert.equal(r({ path: 'live/breakout-1', user: 'other', password: 'p4ss' }), false);
+  assert.equal(r({ path: 'live/off-2', user: 'pull', password: 'p4ss' }), false);
+  assert.equal(r({ path: 'live/riverside-0123456789abcdef', user: 'pull', password: '' }), false);
+  assert.equal(r({ path: 'live/breakout-1' }), false);
+  assert.equal(decideAuth({ action: 'publish', path: 'live/nope', user: 'pull', password: 'p4ss' }, c).allow, false);
+});
+
 test('api/metrics only from loopback', () => {
   assert.equal(decideAuth({ action: 'api', ip: '127.0.0.1' }, ctx).allow, true);
   assert.equal(decideAuth({ action: 'api', ip: '172.31.73.35' }, ctx).allow, false);

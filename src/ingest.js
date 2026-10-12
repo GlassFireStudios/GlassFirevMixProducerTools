@@ -84,6 +84,14 @@ export function decideAuth(req, ctx) {
 
   if (action === 'read' || action === 'playback') {
     if (loopback || ctx.readCidrs.some((c) => ipInCidr(ip, c))) return { allow: true, reason: 'trusted-network' };
+    // From anywhere else (e.g. a show computer at a venue pulling a relay): user
+    // "pull" plus that ingest's own read password.
+    const prefix = `${INGEST_APP}/`;
+    if (req.user === 'pull' && p.startsWith(prefix)) {
+      const key = p.slice(prefix.length);
+      const hit = ctx.ingests.find((i) => i.enabled && i.readPass && safeEqual(i.key, key));
+      if (hit && safeEqual(req.password, hit.readPass)) return { allow: true, reason: 'pull-credentials', ingestKey: hit.key };
+    }
     return { allow: false, reason: 'untrusted-network' };
   }
 
@@ -107,6 +115,10 @@ export class IngestStore extends EventEmitter {
         ingests: Array.isArray(parsed?.ingests) ? parsed.ingests : [],
         legacy: parsed?.legacy ?? null,
       };
+      // Ingests made before pull passwords existed get one now.
+      let added = false;
+      for (const i of this.data.ingests) if (!i.readPass) { i.readPass = crypto.randomBytes(12).toString('hex'); added = true; }
+      if (added) await atomicWrite(this.file, JSON.stringify(this.data, null, 2));
     } catch (err) {
       if (err.code !== 'ENOENT') throw err;
     }
@@ -135,6 +147,7 @@ export class IngestStore extends EventEmitter {
       id: this._uniqueId(clean),
       name: clean,
       key: newKey(clean),
+      readPass: crypto.randomBytes(12).toString('hex'),
       enabled: true,
       createdAt: new Date().toISOString(),
     };
@@ -156,6 +169,7 @@ export class IngestStore extends EventEmitter {
     const rec = this.get(id);
     if (!rec) return null;
     rec.key = newKey(rec.name);
+    rec.readPass = crypto.randomBytes(12).toString('hex');
     rec.rotatedAt = new Date().toISOString();
     await this._persist();
     return rec;
