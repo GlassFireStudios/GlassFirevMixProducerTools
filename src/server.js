@@ -29,6 +29,7 @@ import { FusionHub } from './fusionhub.js';
 import { Shows, publicShow } from './shows.js';
 import { ScreenChecks, cleanReport } from './screenchecks.js';
 import { Field, manifestFor, isExpired, UPLOADS_DIR, UPLOAD_CAP_BYTES, uploadsBytes } from './field.js';
+import { Schedules, effective, parseShift } from './schedule.js';
 import { z } from 'zod';
 import {
   requireAdmin, isAdmin, issueSession, setSessionCookie, clearSessionCookie,
@@ -70,6 +71,22 @@ fusionhub.start();
 const shows = await new Shows().load();
 const screenChecks = await new ScreenChecks().load();
 const field = await new Field({ notify: (text) => slackNotify(text) }).load();
+const schedules = await new Schedules({ notify: (text) => slackNotify(text) }).load();
+
+// A kit published with a schedule seed gets an editable schedule on first sight.
+async function kitWithSchedule(kitId) {
+  await field.refreshKits();
+  const kit = field.kits.get(kitId);
+  if (!kit) return null;
+  if (kit.scheduleSeed && !schedules.get(kitId)) await schedules.seed(kitId, kit.scheduleSeed, kit.title);
+  const sched = schedules.get(kitId);
+  if (!sched) return kit;
+  return {
+    ...kit,
+    version: `${kit.version}+s${sched.version}`,
+    files: [...(kit.files || []), ...sched.files.map((f) => ({ path: f.path, role: 'all', apply: 'schedule', owned: true, sha256: f.sha256, size: f.size, generated: true }))],
+  };
+}
 setInterval(() => field.sweep().catch(() => {}), 60_000).unref();
 
 // Field alerts go to the #field-support Slack channel via its incoming webhook.
@@ -300,14 +317,16 @@ fieldRouter.post('/fm/api/enroll', joinLimiter, express.json({ limit: '8kb' }), 
   res.json({ machineId: r.machine.id, name: r.machine.name, role: r.machine.role, kit: r.machine.kit, token: r.token, supportKey: r.supportKey, hub: `https://${LIVE_HOST}` });
 });
 fieldRouter.get('/fm/api/manifest', machineAuth, async (req, res) => {
-  await field.refreshKits();
-  const kit = field.kits.get(req.machine.kit) || { kit: req.machine.kit, version: '', root: 'C:\\GlassFire\\Kit', files: [], media: [] };
+  const kit = (await kitWithSchedule(req.machine.kit)) || { kit: req.machine.kit, version: '', root: 'C:\\GlassFire\\Kit', files: [], media: [] };
   res.json({ ...manifestFor(kit, req.machine), agent: { sha256: (await fieldScript('agent.ps1')).sha256 } });
 });
 fieldRouter.get('/fm/api/file', machineAuth, (req, res) => {
   const m = req.machine;
+  if (isExpired(m)) return res.status(404).json({ error: 'not-found' });
+  const gen = schedules.get(m.kit)?.files.find((f) => f.path === req.query.path);
+  if (gen) return res.type(gen.path.endsWith('.js') ? 'application/javascript' : 'text/plain').send(Buffer.from(gen.content, 'utf8'));
   const entry = field.kitEntry(m.kit, m, String(req.query.path || ''));
-  if (!entry || isExpired(m)) return res.status(404).json({ error: 'not-found' });
+  if (!entry) return res.status(404).json({ error: 'not-found' });
   res.sendFile(field.kitFilePath(m.kit, entry.stored || entry.path));
 });
 fieldRouter.post('/fm/api/heartbeat', machineAuth, express.json({ limit: '64kb' }), async (req, res) => {
@@ -367,6 +386,7 @@ fieldRouter.post('/fm/api/support/upload', supportAuth, express.raw({ type: '*/*
 
 app.use(fieldRouter);
 app.get('/field', (req, res) => sendPage(res, 'field.html'));
+app.get('/schedule', (req, res) => sendPage(res, 'schedule.html'));
 
 app.get('/producer', gateProducer, (req, res) => sendPage(res, 'index.html'));
 app.get('/grid.html', gateProducer, (req, res) => sendPage(res, 'grid.html'));
@@ -757,7 +777,57 @@ admin.put('/field/slack', async (req, res) => {
 admin.post('/field/slack/test', async (req, res) => {
   res.json({ ok: await slackNotify(':white_check_mark: GlassFire Live Tools can post to this channel.') });
 });
-admin.post('/field/kits/reload', async (req, res) => { await field.loadKits(); res.json({ kits: [...field.kits.keys()] }); });
+// ---- Show schedules (blocks + countdown events, with running early/late) -----
+async function scheduleView(kitId) {
+  const kit = await kitWithSchedule(kitId);
+  const s = schedules.get(kitId);
+  if (!s || !kit) return null;
+  return {
+    kit: s.kit, title: s.title, version: s.version, updatedAt: s.updatedAt, kitVersion: kit.version,
+    items: s.items.map((i) => ({ ...i, effective: effective(i) })),
+    machines: field.list().filter((m) => m.kit === kitId).map((m) => {
+      const p = field.publicMachine(m);
+      return { id: m.id, name: m.name, role: m.role, online: p.online, expired: p.expired, synced: m.status?.kitVersion === kit.version, kitVersion: m.status?.kitVersion || '', lastSeen: m.lastSeen };
+    }),
+  };
+}
+admin.get('/schedules', async (req, res) => {
+  await field.refreshKits();
+  for (const k of field.kits.values()) await kitWithSchedule(k.kit);
+  res.json({ schedules: schedules.list().map((s) => ({ kit: s.kit, title: s.title, version: s.version, items: s.items.length })) });
+});
+admin.get('/schedules/:kit', async (req, res) => {
+  const v = await scheduleView(req.params.kit);
+  if (!v) return res.status(404).json({ error: 'not-found' });
+  res.json(v);
+});
+admin.post('/schedules/:kit/items', async (req, res) => {
+  try {
+    const it = await schedules.add(req.params.kit, req.body || {});
+    if (!it) return res.status(404).json({ error: 'not-found' });
+    res.json(await scheduleView(req.params.kit));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.patch('/schedules/:kit/items/:id', async (req, res) => {
+  try {
+    const it = await schedules.update(req.params.kit, req.params.id, req.body || {});
+    if (!it) return res.status(404).json({ error: 'not-found' });
+    res.json(await scheduleView(req.params.kit));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+admin.post('/schedules/:kit/items/:id/shift', async (req, res) => {
+  const seconds = req.body?.text != null ? parseShift(req.body.text) : Math.round(Number(req.body?.seconds));
+  if (!Number.isFinite(seconds) || !seconds || Math.abs(seconds) > 4 * 3600) return res.status(400).json({ error: 'Enter a shift like 3, 2:30, 30s or -1 (up to 4 hours)' });
+  const moved = await schedules.shift(req.params.kit, req.params.id, seconds, !!req.body?.following);
+  if (!moved) return res.status(404).json({ error: 'not-found' });
+  res.json(await scheduleView(req.params.kit));
+});
+admin.delete('/schedules/:kit/items/:id', async (req, res) => {
+  if (!(await schedules.remove(req.params.kit, req.params.id))) return res.status(404).json({ error: 'not-found' });
+  res.json(await scheduleView(req.params.kit));
+});
+
+admin.post('/field/kits/reload',async (req, res) => { await field.loadKits(); res.json({ kits: [...field.kits.keys()] }); });
 
 admin.get('/screen-checks',(req, res) => res.json({ checks: screenChecks.list(), checkUrl: `https://${LIVE_HOST}/check` }));
 admin.delete('/screen-checks', async (req, res) => { await screenChecks.clear(); res.json({ ok: true }); });

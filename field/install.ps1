@@ -4,7 +4,7 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://live.glassfire.co/fm/install.ps1))) -Code ABCD-EFGH"
 #
 # It enrolls this computer with GlassFire, sets the clock to Eastern time, installs
-# the background agent (scheduled task, every 2 minutes) and pulls the show kit.
+# the background agent (scheduled task, every minute) and pulls the show kit.
 # Remove with the same command and -Uninstall instead of -Code.
 param(
   [string]$Code = '',
@@ -63,9 +63,9 @@ try {
   Say "Time zone set to $TimeZone, clock synced" Green
 } catch { Say "Could not set the clock: $($_.Exception.Message)" Yellow }
 
-# 4. Background agent: at start-up and every 2 minutes, as SYSTEM.
+# 4. Background agent: at start-up and every minute, as SYSTEM.
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $Base 'agent.ps1') + '"')
-$every = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 2)
+$every = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
 $boot = New-ScheduledTaskTrigger -AtStartup
 $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 6) -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries

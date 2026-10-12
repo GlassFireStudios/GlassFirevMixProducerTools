@@ -1,4 +1,4 @@
-# GlassFire Field Agent. Runs every 2 minutes as SYSTEM (scheduled task
+# GlassFire Field Agent. Runs every minute as SYSTEM (scheduled task
 # "GlassFire Field Agent"). Each run:
 #   1. fetches this machine's kit manifest from the hub (or uses the cached one offline)
 #   2. downloads any kit file that is missing or changed, verifies its SHA-256, swaps it in
@@ -110,10 +110,11 @@ try {
   if (-not $expired) {
     # ---- 3. kit files -----------------------------------------------------------
     $changed = @()
+    $failed = 0
     foreach ($f in @($m.files)) {
       $dest = Join-Path $root ($f.path -replace '/', '\')
       if ((Test-Path -LiteralPath $dest) -and ((Sha $dest) -eq $f.sha256)) { continue }
-      if (-not $online) { [void]$notes.Add("waiting for the hub to update $($f.path)"); continue }
+      if (-not $online) { $failed++; [void]$notes.Add("waiting for the hub to update $($f.path)"); continue }
       try {
         New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
         $tmp = "$dest.gfpart"
@@ -123,6 +124,7 @@ try {
         $changed += $f
         Log "updated $($f.path)"
       } catch {
+        $failed++
         [void]$notes.Add("could not update $($f.path): $($_.Exception.Message)")
         Log "update failed $($f.path): $($_.Exception.Message)"
       }
@@ -131,9 +133,8 @@ try {
       if ($f.apply -eq 'countdown') { VmixFn 'BrowserReload' 'COUNTDOWN' }
       if ($f.apply -eq 'preset') { [void]$notes.Add("New version of $(Split-Path $f.path -Leaf) is ready. GlassFire will tell you when to reopen it.") }
     }
-    if ($changed.Count -gt 0 -or $state.kitVersion -ne [string]$m.version) {
-      $state.kitVersion = [string]$m.version
-    }
+    # Report the kit version only once every file matches it (the hub shows "in sync").
+    if ($failed -eq 0) { $state.kitVersion = [string]$m.version }
 
     # ---- 4. media -----------------------------------------------------------------
     $missing = @()

@@ -76,6 +76,8 @@ const version = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').
 const stage = await fs.mkdtemp(path.join(os.tmpdir(), `kit-${def.kit}-`));
 const filesDir = path.join(stage, def.kit, 'files');
 const manifest = { kit: def.kit, title: def.title || def.kit, version, root: def.root, startup: def.startup || {}, publishedAt: new Date().toISOString(), files: [], media: [] };
+// Starting schedule; only used the first time the hub sees this kit (then edited on livetools).
+if (def.schedule) manifest.scheduleSeed = def.schedule;
 
 for (const f of def.files) {
   const src = path.join(def.source, ...f.path.split('/'));
