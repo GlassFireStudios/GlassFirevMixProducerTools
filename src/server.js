@@ -355,7 +355,8 @@ fieldRouter.post('/fm/api/heartbeat', machineAuth, express.json({ limit: '64kb' 
 });
 // Support app: the machine's support key only (it cannot read kit files).
 fieldRouter.get('/fm/support', (req, res) => sendPage(res, 'support.html'));
-fieldRouter.get('/fm/support.js', (req, res) => res.type('application/javascript').sendFile(path.join(PUBLIC_DIR, 'support.js')));
+fieldRouter.get('/fm/icon.svg', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'brand', 'livetools-icon.svg')));
+fieldRouter.get('/fm/support.js',(req, res) => res.type('application/javascript').sendFile(path.join(PUBLIC_DIR, 'support.js')));
 fieldRouter.get('/fm/api/support/me', supportAuth, (req, res) => {
   const m = field.publicMachine(req.machine);
   res.json({

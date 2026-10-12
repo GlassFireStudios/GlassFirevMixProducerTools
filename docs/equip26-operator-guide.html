@@ -1,31 +1,29 @@
 <title>Equip 2026 Operator Guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  /* Layout: a field binder. One narrow column, tabbed sections, the Stream Deck drawn to scale. */
+  /* GlassFire design system (black-first, Poppins, Fire + Glass). One deliberate dark look.
+     Layout: a field binder. One narrow column, tabbed sections, the Stream Deck drawn to scale. */
   :root {
-    --bg: #f3f4f0; --paper: #ffffff; --ink: #14202b; --muted: #5d6873; --line: #d9ddd6;
-    --navy: #002445; --lime: #a9b100; --red: #c62828; --green: #2e7d32; --amber: #b26a00; --violet: #4a2a6e; --slate: #3b4148;
-    --chip: #e8ebe4;
-    --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
-    --body: "Barlow", "Segoe UI", Arial, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    --bg: #000000; --paper: #1A1A1F; --ink: #FFFFFF; --muted: #B8B8BE; --line: #2A2A30; --chip: #0A0A0C;
+    --fire: #EE2750; --glass: #00A8E4; --spark: linear-gradient(110deg, #00A8E4 0%, #3C5BA9 35%, #E50981 65%, #EE2750 100%);
+    --navy: #EE2750; --lime: #EE2750; --red: #EE2750; --green: #2FBF71; --amber: #F2B33D;
+    --display: "Poppins", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --body: "Poppins", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: dark;
   }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    --bg: #0f1418; --paper: #161d23; --ink: #e9ede6; --muted: #9aa5ae; --line: #2a333b; --navy: #0b3a66; --lime: #c3cc00;
-    --red: #e05252; --green: #4caf50; --amber: #e0a030; --violet: #7a55a8; --slate: #4a525a; --chip: #1f282f; color-scheme: dark } }
-  :root[data-theme="dark"] {
-    --bg: #0f1418; --paper: #161d23; --ink: #e9ede6; --muted: #9aa5ae; --line: #2a333b; --navy: #0b3a66; --lime: #c3cc00;
-    --red: #e05252; --green: #4caf50; --amber: #e0a030; --violet: #7a55a8; --slate: #4a525a; --chip: #1f282f; color-scheme: dark }
   * { box-sizing: border-box; }
+  a { color: var(--glass); }
+  table { color: var(--ink); }
   body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); padding-inline: 16px; padding-block: 0 48px; }
   .wrap { max-width: 860px; margin: 0 auto; }
-  header.top { padding-block: 28px 18px; border-bottom: 3px solid var(--ink); display: grid; gap: 6px; }
-  .eyebrow { font: 600 13px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-  h1 { font: 700 clamp(34px, 7vw, 54px)/1 var(--display); margin: 0; letter-spacing: .01em; text-wrap: balance; }
-  h1 b { color: var(--lime); font-weight: 700; }
-  h2 { font: 700 30px/1.1 var(--display); margin: 34px 0 10px; text-wrap: balance; }
+  header.top { padding-block: 28px 18px; border-bottom: 3px solid; border-image: var(--spark) 1; display: grid; gap: 6px; }
+  .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--fire); }
+  h1 { font: 800 clamp(34px, 7vw, 56px)/.95 var(--display); margin: 0; letter-spacing: -.02em; text-transform: uppercase; text-wrap: balance; }
+  h1 b { background: var(--spark); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+  h2 { font: 800 28px/1.05 var(--display); margin: 38px 0 10px; text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; }
   h3 { font: 600 19px/1.25 var(--body); margin: 22px 0 6px; }
   p { margin: 8px 0; max-width: 68ch; }
   .lede { font-size: 18px; color: var(--muted); max-width: 62ch; }
@@ -42,9 +40,7 @@
   ol.steps { padding-left: 0; list-style: none; counter-reset: s; display: grid; gap: 8px; margin: 10px 0; }
   ol.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
   ol.steps li::before { content: counter(s); font: 700 20px/1.2 var(--display); color: var(--navy); }
-  :root[data-theme="dark"] ol.steps li::before { color: var(--lime); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ol.steps li::before { color: var(--lime); } }
-  .rule { border-left: 4px solid var(--red); background: var(--paper); padding: 10px 14px; margin: 12px 0; }
+  .rule { border-left: 4px solid var(--fire); background: var(--paper); padding: 10px 14px; margin: 12px 0; }
   .rule b { color: var(--red); }
 
   /* Stream Deck XL, 8 x 4, drawn to scale */
@@ -68,14 +64,14 @@
   .flow .n b { display: block; font: 700 16px/1.1 var(--display); }
   .flow .a { color: var(--muted); font-weight: 700; }
   section { scroll-margin-top: 60px; }
-  .nowcard { margin-top: 18px; background: var(--navy); color: #fff; border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+  .nowcard { margin-top: 18px; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 0 0 1px rgba(0,168,228,.35), 0 12px 40px rgba(0,168,228,.20); color: #fff; border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
   .nowcard .eyebrow { color: #c9d3dc; }
   .nowhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .nowhead .mono { font-size: 18px; color: #fff; font-variant-numeric: tabular-nums; }
-  .nowday { font: 700 26px/1.1 var(--display); }
+  .nowday { font: 800 26px/1.1 var(--display); text-transform: uppercase; letter-spacing: -.01em; }
   .nowblock { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .nowlabel { font-size: 14px; color: #c9d3dc; }
-  .key.big { font-size: 22px; padding: 6px 12px; background: #c3cc00; color: #002445; border: 0; }
+  .key.big { font: 800 22px/1 var(--display); padding: 7px 14px; background: var(--fire); color: #fff; border: 0; border-radius: 999px; }
   .nowmeta { font-size: 14px; color: #dfe6ec; }
   .b-now { background: #000; color: #c3cc00; font-size: clamp(6px, 1.2vw, 9px); }
   footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
@@ -126,6 +122,7 @@
       </tbody>
     </table></div>
     <p>Going live uses the same block: on the vertical machine press <b>LIVE</b> plus the current block (Thursday at 2pm is <b>LIVE 5 THU C</b>). If the NOW button and the Windows clock disagree with your watch, post in Slack. The clock is what everything runs on.</p>
+    <p><b>Running early or late:</b> GlassFire moves sessions on the live schedule (down to the second). Within about a minute the countdown, the auto switch and the NOW button all follow, so the table above is the plan and the NOW button is the truth. If you hear a session is moving, post it in Slack.</p>
   </section>
 
   <section id="setup">
